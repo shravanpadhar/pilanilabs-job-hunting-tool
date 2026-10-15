@@ -10,9 +10,6 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Native / heavy packages that must not be bundled into route handlers.
   serverExternalPackages: [
-    "pdf-parse",
-    "pdfjs-dist",
-    "@napi-rs/canvas",
     "@react-pdf/renderer",
     "mammoth",
     "pg",

@@ -1,5 +1,5 @@
 import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
+import { extractText, getDocumentProxy } from "unpdf";
 import { limits } from "@/config/site";
 import { AppError } from "@/lib/errors";
 
@@ -49,14 +49,11 @@ export async function extractResumeText(buf: Buffer, kind: ResumeFileKind): Prom
   let pages: number | null = null;
   try {
     if (kind === "pdf") {
-      const parser = new PDFParse({ data: new Uint8Array(buf) });
-      try {
-        const result = await parser.getText();
-        text = result.text ?? "";
-        pages = result.total ?? result.pages?.length ?? null;
-      } finally {
-        await parser.destroy();
-      }
+      // unpdf bundles a serverless build of pdf.js: no DOM polyfills or native add-ons, so it runs on Vercel.
+      const pdf = await getDocumentProxy(new Uint8Array(buf));
+      const result = await extractText(pdf, { mergePages: true });
+      text = result.text;
+      pages = result.totalPages ?? null;
     } else {
       const result = await mammoth.extractRawText({ buffer: buf });
       text = result.value;

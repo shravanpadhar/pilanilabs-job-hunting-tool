@@ -1,5 +1,4 @@
 import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
 import { describe, expect, it } from "vitest";
 import { checkAts } from "@/lib/resume/ats";
 import { exportFileName } from "@/lib/resume/diff";
@@ -12,9 +11,7 @@ describe("exports are valid and ATS-readable", () => {
   it("PDF: valid file whose text can be extracted in reading order", async () => {
     const pdf = await renderResumePdf(sampleResume);
     expect(detectFileKind(pdf)).toBe("pdf");
-    const parser = new PDFParse({ data: new Uint8Array(pdf) });
-    const text = (await parser.getText()).text;
-    await parser.destroy();
+    const { text } = await extractResumeText(pdf, "pdf");
     for (const needle of ["Asha Verma", "asha.verma@example.com", "EXPERIENCE", "Cobalt Payments", "Senior Frontend Engineer", "EDUCATION", "Pune Institute of Technology", "Next.js"]) {
       expect(text).toContain(needle);
     }
