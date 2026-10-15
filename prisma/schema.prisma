@@ -1,0 +1,355 @@
+// Pilanilabs Job Hunting Tool — data model.
+// User ids are Supabase auth user ids (uuid). Row Level Security is enabled in
+// migration 0002_rls (it only takes effect on Supabase, where the `auth` schema exists).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum WorkMode {
+  REMOTE
+  HYBRID
+  ONSITE
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+}
+
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  INTERVIEWING
+  OFFER
+  REJECTED
+}
+
+enum AlertFrequency {
+  OFF
+  DAILY
+  WEEKLY
+}
+
+enum AtsProvider {
+  GREENHOUSE
+  LEVER
+  ASHBY
+}
+
+enum ExperienceFit {
+  UNDER
+  FIT
+  OVER
+}
+
+model User {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  resumes         Resume[]
+  preferences     Preferences?
+  matches         Match[]
+  tailoredResumes TailoredResume[]
+  applications    Application[]
+  savedSearches   SavedSearch[]
+  aiUsage         AiUsage[]
+  referralDrafts  ReferralDraft[]
+  alertLogs       AlertLog[]
+  companyReviews  CompanyReview[]
+  companyBoards   CompanyBoard[]
+}
+
+model Resume {
+  id         String   @id @default(cuid())
+  userId     String   @db.Uuid
+  fileName   String
+  fileUrl    String? // private storage path (never a public URL)
+  rawText    String   @db.Text
+  parsedJson Json
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tailoredResumes TailoredResume[]
+
+  @@index([userId])
+}
+
+model Preferences {
+  userId           String     @id @db.Uuid
+  targetRoles      String[]
+  locations        String[]
+  workModes        WorkMode[]
+  minSalary        Int?
+  currency         String     @default("INR")
+  experienceLevel  String?
+  jobTypes         JobType[]
+  keywordsInclude  String[]
+  keywordsExclude  String[]
+  noticePeriodDays Int?
+
+  // Alerts (top new matches digest)
+  alertFrequency AlertFrequency @default(OFF)
+  alertEmail     Boolean        @default(true)
+  alertWhatsapp  Boolean        @default(false)
+  whatsappNumber String?
+  alertMinScore  Int            @default(70)
+  lastAlertAt    DateTime?
+
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Job {
+  id              String   @id @default(cuid())
+  source          String
+  externalId      String
+  title           String
+  company         String
+  companySlug     String
+  companyLogoUrl  String?
+  location        String?
+  country         String?
+  isRemote        Boolean  @default(false)
+  employmentType  JobType?
+  salaryMin       Int?
+  salaryMax       Int?
+  salaryCurrency  String?
+  descriptionHtml String?  @db.Text
+  descriptionText String   @db.Text
+  postedAt        DateTime
+  applyUrl        String
+  publisher       String? // e.g. "LinkedIn" when an aggregator reports it
+  attributionUrl  String? // link back required by some sources (Remotive, RemoteOK, Jobicy)
+  fetchedAt       DateTime @default(now())
+  dedupeHash      String   @unique
+  // Every source that has listed this job. A job is "hidden" when it is only
+  // present on direct company boards (Greenhouse / Lever / Ashby).
+  sourcesSeen     String[]
+  // Canonical skills detected in title + description (computed at ingest; used by matching).
+  skills          String[]
+  isDirect        Boolean  @default(false)
+  isSeed          Boolean  @default(false)
+
+  matches      Match[]
+  tailored     TailoredResume[]
+  applications Application[]
+  referrals    ReferralDraft[]
+
+  @@unique([source, externalId])
+  @@index([postedAt])
+  @@index([companySlug])
+  @@index([isDirect, postedAt])
+}
+
+model Match {
+  id             String         @id @default(cuid())
+  userId         String         @db.Uuid
+  jobId          String
+  score          Int
+  stage1Score    Int
+  aiScored       Boolean        @default(false)
+  // Hash of the candidate profile this score was computed for; AI scores are reused while it is unchanged.
+  profileHash    String         @default("")
+  reason         String         @default("")
+  matchingSkills String[]
+  missingSkills  String[]
+  experienceFit  ExperienceFit?
+  notifiedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId, score])
+}
+
+model TailoredResume {
+  id              String   @id @default(cuid())
+  userId          String   @db.Uuid
+  jobId           String
+  baseResumeId    String
+  contentJson     Json
+  changes         Json?
+  skillGaps       Json?
+  pdfUrl          String?
+  docxUrl         String?
+  coverLetterText String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job          Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  baseResume   Resume        @relation(fields: [baseResumeId], references: [id], onDelete: Cascade)
+  applications Application[]
+
+  @@unique([userId, jobId, baseResumeId])
+  @@index([userId])
+}
+
+model Application {
+  id               String            @id @default(cuid())
+  userId           String            @db.Uuid
+  jobId            String
+  tailoredResumeId String?
+  status           ApplicationStatus @default(SAVED)
+  position         Int               @default(0)
+  appliedAt        DateTime?
+  notes            String?           @db.Text
+  followUpDate     DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job            Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tailoredResume TailoredResume? @relation(fields: [tailoredResumeId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, jobId])
+  @@index([userId, status])
+}
+
+model SavedSearch {
+  id             String         @id @default(cuid())
+  userId         String         @db.Uuid
+  name           String
+  filters        Json
+  alertFrequency AlertFrequency @default(OFF)
+  alertEmail     Boolean        @default(true)
+  alertWhatsapp  Boolean        @default(false)
+  lastAlertAt    DateTime?
+  createdAt      DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model CompanyProfile {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  name           String
+  website        String?
+  logoUrl        String?
+  description    String?   @db.Text
+  industry       String?
+  hqLocation     String?
+  foundedYear    Int?
+  sizeRange      String?
+  fundingStage   String?
+  fundingNote    String?
+  investors      String[]
+  glassdoorUrl   String?
+  ambitionboxUrl String?
+  linkedinUrl    String?
+  careersUrl     String?
+  dataSource     String?
+  dataAsOf       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  reviews CompanyReview[]
+}
+
+model CompanyReview {
+  id           String   @id @default(cuid())
+  companyId    String
+  userId       String   @db.Uuid
+  rating       Int
+  title        String
+  pros         String   @db.Text
+  cons         String   @db.Text
+  roleTitle    String?
+  relationship String // CURRENT | FORMER | INTERVIEWED
+  createdAt    DateTime @default(now())
+
+  company CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+}
+
+model CompanyBoard {
+  id            String      @id @default(cuid())
+  provider      AtsProvider
+  slug          String
+  companyName   String
+  addedByUserId String?     @db.Uuid
+  enabled       Boolean     @default(true)
+  lastFetchedAt DateTime?
+  lastError     String?
+  jobCount      Int         @default(0)
+  createdAt     DateTime    @default(now())
+
+  addedBy User? @relation(fields: [addedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, slug])
+}
+
+model AiUsage {
+  id              String   @id @default(cuid())
+  userId          String?  @db.Uuid
+  feature         String
+  model           String
+  inputTokens     Int
+  outputTokens    Int
+  cacheReadTokens Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, feature, createdAt])
+}
+
+model ReferralDraft {
+  id              String   @id @default(cuid())
+  userId          String   @db.Uuid
+  jobId           String
+  contactName     String?
+  contactRole     String?
+  relationship    String
+  connectionNote  String
+  followUpMessage String   @db.Text
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([userId, jobId])
+}
+
+model AlertLog {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  channel   String
+  status    String
+  jobCount  Int      @default(0)
+  detail    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model FetchRun {
+  id         String    @id @default(cuid())
+  source     String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  fetched    Int       @default(0)
+  inserted   Int       @default(0)
+  updated    Int       @default(0)
+  error      String?
+}

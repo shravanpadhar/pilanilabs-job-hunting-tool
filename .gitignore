@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+build
+generated
+.env
+.env.local
+.env.*.local
+.local-storage
+*.tsbuildinfo
+next-env.d.ts
+playwright-report
+test-results
+.vercel
+.DS_Store
+.idea/

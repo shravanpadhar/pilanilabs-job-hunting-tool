@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Pilanilabs brand tokens (from the brand kit):
+  primary / accent #B9832C · secondary / text #021C3D · background #F6F5F1 · link #CED9E5
+  headings: Playfair Display · body: Inter · buttons radius 6px · inputs radius 12px
+*/
+:root {
+  --background: #f6f5f1;
+  --foreground: #021c3d;
+  --card: #ffffff;
+  --card-foreground: #021c3d;
+  --primary: #b9832c;
+  --primary-foreground: #ffffff;
+  --secondary: #021c3d;
+  --secondary-foreground: #f6f5f1;
+  --muted: #eceae3;
+  --muted-foreground: #4a5b73;
+  --accent: #b9832c;
+  --gold-ink: #8a5f16; /* darker gold for gold *text* — keeps 4.5:1 contrast on cream */
+  --link: #ced9e5;
+  --border: #dad6ca;
+  --input: #ffffff;
+  --input-border: #b8c2d0;
+  --ring: #b9832c;
+  --success: #1f7a4d;
+  --warning: #9a5b00;
+  --danger: #b3261e;
+  --radius-button: 6px;
+  --radius-input: 12px;
+  --radius-card: 6px;
+}
+
+.dark {
+  --background: #061326;
+  --foreground: #eaeff5;
+  --card: #0f1932;
+  --card-foreground: #eaeff5;
+  --secondary: #ced9e5;
+  --secondary-foreground: #021c3d;
+  --muted: #12203d;
+  --muted-foreground: #a9b7cc;
+  --gold-ink: #dcab57;
+  --link: #3a4a6b;
+  --border: #26324d;
+  --input: #0f1932;
+  --input-border: #26324d;
+  --success: #4cc38a;
+  --warning: #e0a13a;
+  --danger: #ff8a80;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-gold-ink: var(--gold-ink);
+  --color-link: var(--link);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-border: var(--input-border);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --radius-button: var(--radius-button);
+  --radius-input: var(--radius-input);
+  --radius-card: var(--radius-card);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-heading: var(--font-playfair), Georgia, serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+  a {
+    text-underline-offset: 3px;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--link);
+    color: var(--foreground);
+  }
+}
+
+/* Sanitised job-description HTML */
+.prose-job {
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+.prose-job p,
+.prose-job ul,
+.prose-job ol {
+  margin: 0.75em 0;
+}
+.prose-job ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.prose-job ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.prose-job li {
+  margin: 0.25em 0;
+}
+.prose-job h1,
+.prose-job h2,
+.prose-job h3,
+.prose-job h4 {
+  font-family: var(--font-sans);
+  font-weight: 650;
+  margin: 1.2em 0 0.4em;
+  font-size: 1.05rem;
+}
+.prose-job a {
+  color: var(--gold-ink);
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
