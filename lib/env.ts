@@ -39,6 +39,16 @@ export const env = {
   get openrouterBaseUrl() {
     return (read("OPENROUTER_BASE_URL") ?? "https://openrouter.ai/api/v1").replace(/\/+$/, "");
   },
+  /**
+   * Stage-2 AI match scoring. ON by default for every provider; set AI_MATCH_SCORING=false to turn it off
+   * (useful on free OpenRouter models, which have small daily request quotas).
+   */
+  get aiMatchScoring(): boolean {
+    const v = read("AI_MATCH_SCORING")?.toLowerCase();
+    if (v === "true" || v === "1") return true;
+    if (v === "false" || v === "0") return false;
+    return true;
+  },
   get cronSecret() {
     return read("CRON_SECRET");
   },

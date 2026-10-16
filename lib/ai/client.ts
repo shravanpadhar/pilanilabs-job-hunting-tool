@@ -40,12 +40,12 @@ export function schemaPrompt(schema: z.ZodType): string {
 async function logUsage(userId: string | null | undefined, feature: AiFeature, model: string, r: ChatResult) {
   try {
     await db.aiUsage.create({
-      data: { userId: userId ?? null, feature, model, inputTokens: r.inputTokens, outputTokens: r.outputTokens, cacheReadTokens: r.cacheReadTokens },
+      data: { userId: userId ?? null, feature, model: model.split(",")[0], inputTokens: r.inputTokens, outputTokens: r.outputTokens, cacheReadTokens: r.cacheReadTokens },
     });
   } catch (err) {
     log.warn("ai_usage_log_failed", { feature, message: (err as Error).message });
   }
-  log.info("ai_call", { feature, model, provider: env.aiProvider, in: r.inputTokens, out: r.outputTokens, userId: userId ?? null });
+  log.info("ai_call", { feature, model: model.split(",")[0], provider: env.aiProvider, in: r.inputTokens, out: r.outputTokens, userId: userId ?? null });
 }
 
 export interface JsonCallOptions<S extends z.ZodType> {

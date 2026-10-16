@@ -18,6 +18,7 @@ export interface ChatResult {
 }
 
 interface OpenRouterResponse {
+  model?: string;
   choices?: Array<{ message?: { content?: string | null }; finish_reason?: string | null }>;
   usage?: { prompt_tokens?: number; completion_tokens?: number; prompt_tokens_details?: { cached_tokens?: number } };
   error?: { message?: string; code?: number | string };
@@ -41,9 +42,17 @@ function mapError(status: number, message: string): AppError {
  * One chat completion through OpenRouter (OpenAI-compatible API: https://openrouter.ai/docs/api-reference).
  * Retries rate limits / transient errors, and falls back to a plain request if the model rejects JSON mode.
  */
-export async function openrouterChat(opts: { model: string; system: string; messages: ChatMessage[]; maxTokens: number }): Promise<ChatResult> {
+export async function openrouterChat(opts: {
+  /** One model id, or a comma-separated fallback chain (tried in order). */
+  model: string;
+  system: string;
+  messages: ChatMessage[];
+  maxTokens: number;
+  effort?: "low" | "medium" | "high";
+}): Promise<ChatResult> {
   if (!env.openrouterKey) throw new AppError("AI features aren't configured yet. Add OPENROUTER_API_KEY to enable them.", 503, "ai_unavailable");
 
+  const models = opts.model.split(",").map((m) => m.trim()).filter(Boolean);
   let jsonMode = true;
   const baseDelay = Number(process.env.AI_RETRY_DELAY_MS ?? 2000);
 
@@ -59,8 +68,12 @@ export async function openrouterChat(opts: { model: string; system: string; mess
           "X-Title": "Pilanilabs Job Hunting Tool",
         },
         body: JSON.stringify({
-          model: opts.model,
-          max_tokens: opts.maxTokens,
+          model: models[0],
+          // OpenRouter's native fallback: if the first model is rate-limited / down it tries the next.
+          ...(models.length > 1 ? { models } : {}),
+          // Reasoning models spend part of max_tokens thinking; leave headroom, keep the thinking short and hidden.
+          max_tokens: opts.maxTokens + 4000,
+          reasoning: { effort: opts.effort ?? "low", exclude: true },
           temperature: 0.2,
           messages: [{ role: "system", content: opts.system }, ...opts.messages],
           ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
@@ -72,7 +85,7 @@ export async function openrouterChat(opts: { model: string; system: string; mess
         await sleep(baseDelay * (attempt + 1));
         continue;
       }
-      log.error("openrouter_network_error", err, { model: opts.model });
+      log.error("openrouter_network_error", err, { model: models[0] });
       throw (err as Error).name === "TimeoutError" ? mapError(504, "") : mapError(502, "");
     }
 
@@ -91,11 +104,12 @@ export async function openrouterChat(opts: { model: string; system: string; mess
         await sleep(Math.min(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : baseDelay * (attempt + 1), 15_000));
         continue;
       }
-      log.warn("openrouter_error", { status, model: opts.model, message: message.slice(0, 200) });
+      log.warn("openrouter_error", { status, model: models[0], message: message.slice(0, 200) });
       throw mapError(status, message);
     }
 
     const choice = data.choices?.[0];
+    if (data.model) log.info("openrouter_model_used", { requested: models[0], used: data.model });
     const finish = choice?.finish_reason ?? "stop";
     return {
       text: choice?.message?.content ?? "",

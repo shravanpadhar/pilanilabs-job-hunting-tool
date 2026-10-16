@@ -64,6 +64,32 @@ Everything is documented inline in [`.env.example`](.env.example). Summary and w
 
 Remotive, RemoteOK, Arbeitnow, Jobicy, Greenhouse, Lever and Ashby need **no key**.
 
+## Free AI with OpenRouter (instead of a paid Anthropic key)
+
+1. Create a key at <https://openrouter.ai/keys>.
+2. Set `AI_PROVIDER=openrouter` and `OPENROUTER_API_KEY=...` (in `.env.local` and on Vercel). Leave `ANTHROPIC_API_KEY` empty.
+3. Defaults are free NVIDIA Nemotron models with a Gemma 4 fallback (`config/ai.ts`); override with `OPENROUTER_MODEL_QUALITY` / `OPENROUTER_MODEL_FAST` (comma-separated = fallback chain). Check <https://openrouter.ai/models?max_price=0> for what is currently free — the list changes.
+
+What to expect: free models are slower, rate-limited (small per-minute and per-day quotas for the whole app, not per user) and less accurate than Claude. Resume parsing falls back to the offline parser if the AI fails, tailored resumes are still verified against your original in code, and AI scoring of the job feed is on by default (it can burn through free quotas quickly — set `AI_MATCH_SCORING=false` to switch it off). Free endpoints may log prompts — check each model's data policy on OpenRouter before using real resumes.
+
+## Sign-in: email works in any browser, plus Google
+
+**Cross-browser email sign-in.** The email contains both a link and a 6-digit code, and the login page accepts the code, so people can open the email on another device or browser. For the link to work in any browser, update two Supabase email templates (Authentication → Emails → Templates): **Magic Link** *and* **Confirm signup** (new users get the latter). Paste:
+
+```html
+<h2>Sign in to Pilanilabs</h2>
+<p>Your sign-in code: <strong>{{ .Token }}</strong></p>
+<p>Or <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/onboarding">click here to sign in</a> — in any browser.</p>
+```
+
+(Some company mail scanners open links before the person does and use up the one-time link; the code always still works.)
+
+**Google sign-in for everyone.**
+1. Google Cloud Console → APIs & Services → **OAuth consent screen**: create the app, then click **Publish app** so its status is **In production**. While it says "Testing", only listed test users can sign in — the usual reason "others can't log in".
+2. **Credentials → Create credentials → OAuth client ID → Web application**. Authorized redirect URI: `https://<your-project-ref>.supabase.co/auth/v1/callback`.
+3. Supabase → Authentication → Sign In / Providers → **Google**: enable, paste the client ID and secret, save.
+4. Supabase → Authentication → URL Configuration: Site URL = your app URL; Redirect URLs include `https://<your-app>/**`.
+
 ## Setting up Supabase
 
 1. Create a project. Copy the URL, anon key, service-role key and the two database connection strings into `.env.local`.

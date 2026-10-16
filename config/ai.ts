@@ -10,11 +10,15 @@ export const AI_MODELS = {
 } as const;
 
 /**
- * OpenRouter models (https://openrouter.ai/models?max_price=0 lists the free ones). Defaults are Google's
- * free Gemma 4 models. Gemini itself is paid on OpenRouter — to use it, set e.g.
- * OPENROUTER_MODEL_QUALITY=google/gemini-3.5-flash-lite. Read lazily so env changes apply without a rebuild.
+ * OpenRouter models (https://openrouter.ai/models?max_price=0 lists the free ones). Defaults are free NVIDIA
+ * Nemotron models with a Gemma 4 fallback. Gemini is paid on OpenRouter — to use it, set e.g.
+ * OPENROUTER_MODEL_QUALITY=google/gemini-3.5-flash-lite. A comma-separated list is a fallback chain. Read lazily so env changes apply without a rebuild.
  */
-export const OPENROUTER_DEFAULTS = { quality: "google/gemma-4-31b-it:free", fast: "google/gemma-4-26b-a4b-it:free" } as const;
+export const OPENROUTER_DEFAULTS = {
+  // Comma-separated = fallback chain: if the first model is rate-limited or down, OpenRouter tries the next.
+  quality: "nvidia/nemotron-3-ultra-550b-a55b:free,nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-31b-it:free",
+  fast: "nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-26b-a4b-it:free",
+} as const;
 
 export type AiFeature =
   | "parse_resume"

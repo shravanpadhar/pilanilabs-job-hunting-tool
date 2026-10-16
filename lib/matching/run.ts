@@ -1,5 +1,5 @@
 import { matching } from "@/config/matching";
-import { flags } from "@/lib/env";
+import { env, flags } from "@/lib/env";
 import { scoreJobsWithAi } from "@/lib/ai/score-matches";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
@@ -79,8 +79,8 @@ export async function computeMatchesForUser(userId: string, opts: { skipAi?: boo
 
   // ── Stage 2 ────────────────────────────────────────────────────────────────
   const summary: MatchRunSummary = { considered: jobs.length, kept: scored.length, aiScored: 0 };
-  if (opts.skipAi || !flags.ai) {
-    summary.aiSkippedReason = opts.skipAi ? "skipped" : "No AI key set — using keyword scores";
+  if (opts.skipAi || !flags.ai || !env.aiMatchScoring) {
+    summary.aiSkippedReason = opts.skipAi ? "skipped" : !flags.ai ? "No AI key set — using keyword scores" : "AI scoring is off (AI_MATCH_SCORING=false) — using keyword scores";
     return summary;
   }
 
