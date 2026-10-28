@@ -149,7 +149,8 @@ describe("client bundle hygiene", () => {
     const files = [...(await walk(path.join(root, "components"))), ...(await walk(path.join(root, "app")))];
     const offenders: string[] = [];
     for (const f of files) {
-      const src = await fs.readFile(f, "utf8");
+      // Type-only imports are erased at build time, so they cannot pull server code into the bundle.
+      const src = (await fs.readFile(f, "utf8")).replace(/^\s*import\s+type\b[^;]*;/gm, "");
       if (!/^\s*["']use client["']/m.test(src.slice(0, 200))) continue;
       for (const bad of FORBIDDEN) if (new RegExp(`from\\s+["']${bad.replace(/[/@]/g, "\\$&")}(["'/])`).test(src)) offenders.push(`${path.relative(root, f)} imports ${bad}`);
       for (const m of src.matchAll(/process\.env\.([A-Z0-9_]+)/g)) if (!m[1].startsWith("NEXT_PUBLIC_") && m[1] !== "NODE_ENV") offenders.push(`${path.relative(root, f)} reads ${m[1]}`);

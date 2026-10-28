@@ -30,8 +30,12 @@ export const env = {
     return read("ANTHROPIC_API_KEY");
   },
   /** Which LLM backend to use: "anthropic" (default) or "openrouter". */
-  get aiProvider(): "anthropic" | "openrouter" {
-    return read("AI_PROVIDER")?.toLowerCase() === "openrouter" ? "openrouter" : "anthropic";
+  get aiProvider(): "anthropic" | "openrouter" | "fake" {
+    const v = read("AI_PROVIDER")?.toLowerCase();
+    if (v === "openrouter") return "openrouter";
+    // "fake" = deterministic offline model for the outreach features (tests, local dev). Refused in production.
+    if (v === "fake") return "fake";
+    return "anthropic";
   },
   get openrouterKey() {
     return read("OPENROUTER_API_KEY");
@@ -113,6 +117,9 @@ export const env = {
     if (v === "gmail" || v === "fake") return v;
     return read("GOOGLE_OAUTH_CLIENT_ID") && read("GOOGLE_OAUTH_CLIENT_SECRET") ? "gmail" : "fake";
   },
+  get jobLookupProvider(): "licensed" | "fake" {
+    return read("JOB_LOOKUP_PROVIDER")?.toLowerCase() === "licensed" ? "licensed" : "fake";
+  },
   get contactDataApiKey() {
     return read("CONTACT_DATA_API_KEY");
   },
@@ -175,6 +182,9 @@ export const flags = {
   },
   /** An AI backend is configured (the one selected by AI_PROVIDER has its key). */
   get ai() {
+    // The fake provider deliberately reports false: the legacy features (parse, score, tailor...) keep their
+    // no-key fallbacks, while the outreach features call the fake model directly.
+    if (env.aiProvider === "fake") return false;
     return env.aiProvider === "openrouter" ? Boolean(env.openrouterKey) : Boolean(env.anthropicKey);
   },
   /** Dev-only auth shortcut; can never be active in production. */

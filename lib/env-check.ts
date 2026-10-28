@@ -36,6 +36,7 @@ export function checkEnv(source: Source): EnvIssue[] {
   if (!present(source, "CRON_SECRET")) issues.push({ key: "CRON_SECRET", problem: "is required in production" });
   else if (!longSecret.safeParse(source.CRON_SECRET).success) issues.push({ key: "CRON_SECRET", problem: "must be at least 32 characters (openssl rand -hex 32)" });
 
+  if (source.AI_PROVIDER?.toLowerCase() === "fake") issues.push({ key: "AI_PROVIDER", problem: 'must not be "fake" in production' });
   const ai = source.AI_PROVIDER?.toLowerCase() === "openrouter" ? "OPENROUTER_API_KEY" : "ANTHROPIC_API_KEY";
   need(ai, "is required in production for the selected AI_PROVIDER");
 
