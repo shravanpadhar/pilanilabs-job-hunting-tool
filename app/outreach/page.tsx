@@ -1,6 +1,7 @@
 import { Send } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MailboxCard } from "@/components/outreach/mailbox-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,6 +32,7 @@ export default async function OutreachInboxPage() {
         </div>
         <Button asChild><Link href="/outreach/new"><Send /> New outreach</Link></Button>
       </header>
+      <MailboxCard />
       {campaigns.length === 0 ? (
         <EmptyState icon={<Send className="size-10" />} title="No outreach yet" action={<Button asChild><Link href="/outreach/new">Paste a job link</Link></Button>}>
           Paste a job link, review the people we find and the messages we draft, then approve. Nothing is sent without you.

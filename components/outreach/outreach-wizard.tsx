@@ -4,6 +4,7 @@ import { Link2, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DraftsStep } from "@/components/outreach/drafts-step";
+import { StartPanel } from "@/components/outreach/start-panel";
 import { TargetsStep } from "@/components/outreach/targets-step";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,6 +35,7 @@ export function OutreachWizard({ initialJobId, initialCampaignId, children }: { 
   const [campaign, setCampaign] = useState<CampaignData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
+  const [approved, setApproved] = useState(0);
 
   const loadCampaign = useCallback(async (id: string) => {
     setCampaign(await api<CampaignData>(`/api/outreach/campaigns/${id}`));
@@ -106,7 +108,8 @@ export function OutreachWizard({ initialJobId, initialCampaignId, children }: { 
           <p>{campaign.jobSnapshot.company}{campaign.jobSnapshot.location ? ` · ${campaign.jobSnapshot.location}` : ""}</p>
         </Card>
         <TargetsStep campaignId={campaign.id} initial={campaign.targets} onChange={(targets) => setCampaign((c) => (c ? { ...c, targets } : c))} />
-        <DraftsStep campaignId={campaign.id} ready={campaign.targets.some((t) => t.canProceed)} />
+        <DraftsStep campaignId={campaign.id} ready={campaign.targets.some((t) => t.canProceed)} onApprovedCountChange={setApproved} />
+        <StartPanel campaignId={campaign.id} status={campaign.status} approvedCount={approved} onStatus={(status) => setCampaign((c) => (c ? { ...c, status } : c))} />
         {children?.(campaign)}
       </div>
     );

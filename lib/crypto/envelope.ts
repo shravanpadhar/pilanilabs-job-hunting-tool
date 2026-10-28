@@ -28,9 +28,13 @@ export class CryptoError extends Error {
 /** Short, non-reversible fingerprint that identifies which KEK wrapped a value. */
 export const keyId = (kek: Buffer) => createHash("sha256").update("kid:").update(kek).digest("base64url").slice(0, 8);
 
+/** In `next dev` only, a fixed throw-away key is used when none is configured. Tests and production never get this fallback. */
+const DEV_KEY = "d".repeat(64);
+const currentRaw = () => parseKey32(env.tokenEncryptionKey) ?? (process.env.NODE_ENV === "development" ? parseKey32(DEV_KEY) : null);
+
 function keks(): Map<string, Buffer> {
   const out = new Map<string, Buffer>();
-  const current = parseKey32(env.tokenEncryptionKey);
+  const current = currentRaw();
   if (!current) throw new CryptoError("TOKEN_ENCRYPTION_KEY is missing or is not 32 bytes (64 hex chars or base64).");
   out.set(keyId(current), current);
   const previous = parseKey32(env.tokenEncryptionKeyPrevious);
@@ -39,7 +43,7 @@ function keks(): Map<string, Buffer> {
 }
 
 function currentKek(): { kid: string; key: Buffer } {
-  const key = parseKey32(env.tokenEncryptionKey);
+  const key = currentRaw();
   if (!key) throw new CryptoError("TOKEN_ENCRYPTION_KEY is missing or is not 32 bytes (64 hex chars or base64).");
   return { kid: keyId(key), key };
 }

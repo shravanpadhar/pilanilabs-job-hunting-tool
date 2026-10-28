@@ -178,7 +178,8 @@ export async function generateDraftsForCampaign(userId: string, campaignId: stri
       });
       written++;
     };
-    for (const e of gen.set.email) await upsert("EMAIL", e.step, e.subject, e.body, `email.${key}.s${e.step}`);
+    const threadSubject = gen.set.email.find((e) => e.step === 1)?.subject ?? gen.set.email[0].subject;
+    for (const e of gen.set.email) await upsert("EMAIL", e.step, threadSubject, e.body, `email.${key}.s${e.step}`);
     if (t.linkedinUrl || t.roleType) await upsert("LINKEDIN_NOTE", 1, null, gen.set.linkedinNote, `linkedin.note.${key}`);
     await db.outreachTarget.update({ where: { id: t.id }, data: { state: "DRAFTED" } });
   }

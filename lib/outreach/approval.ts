@@ -60,7 +60,9 @@ export async function composeMessage(messageId: string, userId?: string): Promis
   if (message.channel === "EMAIL") {
     if (!profile?.senderName || !profile.postalAddress) throw new AppError("Your sender name and postal address are required before sending.", 400, "profile_incomplete");
     const footer = emailFooter({ senderName: profile.senderName, postalAddress: profile.postalAddress, targetId: message.targetId });
-    return { message, to: message.target.email ?? "", subject: message.subject, bodyAsSent: composeEmailText(message.body, footer), profile };
+    // Follow-ups reuse the first email's subject so they stay in the same Gmail thread (Gmail requires matching subjects).
+    const first = message.step > 1 ? await db.outreachMessage.findUnique({ where: { targetId_channel_step: { targetId: message.targetId, channel: "EMAIL", step: 1 } }, select: { subject: true } }) : null;
+    return { message, to: message.target.email ?? "", subject: first?.subject ?? message.subject, bodyAsSent: composeEmailText(message.body, footer), profile };
   }
   return { message, to: message.target.linkedinUrl ?? "", subject: null, bodyAsSent: message.body, profile };
 }
@@ -123,7 +125,8 @@ export async function editMessage(userId: string, messageId: string, input: { su
   const m = await db.outreachMessage.findFirst({ where: { id: messageId, target: { campaign: { userId } } } });
   if (!m) throw notFound("Message");
   if (["SENDING", "SENT"].includes(m.state)) throw new AppError("This message has already been sent.", 409, "already_sent");
-  const subject = m.channel === "EMAIL" ? (input.subject ?? m.subject ?? "").trim() : null;
+  // Steps 2 and 3 do not have their own subject: they inherit step 1's.
+  const subject = m.channel === "EMAIL" ? (m.step > 1 ? m.subject : (input.subject ?? m.subject ?? "").trim()) : null;
   const body = input.body.trim();
   if (!body) throw new AppError("The message cannot be empty.", 400, "validation");
   if (body.length > 5000 || (subject?.length ?? 0) > 300) throw new AppError("That message is too long.", 400, "validation");
@@ -133,6 +136,13 @@ export async function editMessage(userId: string, messageId: string, input: { su
     where: { id: m.id },
     data: { subject, body, state: "DRAFT", approvedAt: null, approvedTextHash: null, sendKey: null, attachmentSha256: null, scheduledAt: null, lastError: null },
   });
+  if (m.channel === "EMAIL" && m.step === 1 && subject !== m.subject) {
+    await db.outreachMessage.updateMany({
+      where: { targetId: m.targetId, channel: "EMAIL", step: { gt: 1 }, state: { in: ["APPROVED", "SCHEDULED"] } },
+      data: { subject, state: "DRAFT", approvedAt: null, approvedTextHash: null, sendKey: null, attachmentSha256: null, scheduledAt: null },
+    });
+    await db.outreachMessage.updateMany({ where: { targetId: m.targetId, channel: "EMAIL", step: { gt: 1 }, state: "DRAFT" }, data: { subject } });
+  }
   await audit({ userId, action: "message.edited", entityType: "OutreachMessage", entityId: m.id, detail: { wasApproved: m.state !== "DRAFT" } });
   return updated;
 }
