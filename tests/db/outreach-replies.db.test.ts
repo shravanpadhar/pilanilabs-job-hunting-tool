@@ -44,7 +44,10 @@ async function sentCampaign(targets = 1) {
   await activateCampaign(userId, campaign.id);
   const msgs = await db.outreachMessage.findMany({ where: { target: { campaignId: campaign.id }, channel: "EMAIL" }, include: { target: true }, orderBy: [{ targetId: "asc" }, { step: "asc" }] });
   const first = msgs.filter((m) => m.targetId === msgs[0].targetId);
-  await sendMessage(first[0].id, { now: at(first[0]), mailbox });
+  // Earlier sends in this test must not trip the one-per-mailbox spacing rule (which depends on random ids): make "today" empty.
+  await db.outreachMessage.updateMany({ where: { state: "SENT", target: { campaign: { userId } } }, data: { sentAt: new Date(Date.now() - 10 * 86_400_000) } });
+  const out = await sendMessage(first[0].id, { now: at(first[0]), mailbox });
+  expect(out.status).toBe("sent");
   const s1 = await fresh(first[0].id);
   return { campaign, target: first[0].target, steps: first, threadId: s1.threadId! };
 }
