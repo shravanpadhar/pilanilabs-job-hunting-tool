@@ -3,6 +3,7 @@
 import { Link2, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { DraftsStep } from "@/components/outreach/drafts-step";
 import { TargetsStep } from "@/components/outreach/targets-step";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -105,6 +106,7 @@ export function OutreachWizard({ initialJobId, initialCampaignId, children }: { 
           <p>{campaign.jobSnapshot.company}{campaign.jobSnapshot.location ? ` · ${campaign.jobSnapshot.location}` : ""}</p>
         </Card>
         <TargetsStep campaignId={campaign.id} initial={campaign.targets} onChange={(targets) => setCampaign((c) => (c ? { ...c, targets } : c))} />
+        <DraftsStep campaignId={campaign.id} ready={campaign.targets.some((t) => t.canProceed)} />
         {children?.(campaign)}
       </div>
     );
