@@ -27,6 +27,8 @@ export interface TrackerCard {
   company: string;
   location: string | null;
   hasTailored: boolean;
+  /** Set when outreach is running for this job (A6). */
+  outreach?: { campaignId: string; status: string; replies: number } | null;
 }
 
 const COLUMNS: Array<{ status: Status; label: string; tone: string }> = [
@@ -55,6 +57,14 @@ function CardBody({ card, onOpen, onMove, dragging, handle }: { card: TrackerCar
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
         {card.appliedAt ? <Badge variant="muted">Applied {timeAgo(card.appliedAt)}</Badge> : null}
         {card.hasTailored ? <Badge variant="gold">Tailored resume</Badge> : null}
+        {card.outreach ? (
+          <Link href={`/outreach/${card.outreach.campaignId}`} aria-label="Open outreach for this job">
+            <Badge variant={card.outreach.replies > 0 ? "success" : card.outreach.status === "PAUSED" ? "warning" : "default"}>
+              {card.outreach.status === "PAUSED" ? "Outreach paused" : "Outreach active"}
+              {card.outreach.replies > 0 ? ` · ${card.outreach.replies} ${card.outreach.replies === 1 ? "reply" : "replies"}` : ""}
+            </Badge>
+          </Link>
+        ) : null}
         {card.followUpDate ? (
           <Badge variant={overdue ? "danger" : "default"}>
             <CalendarClock className="size-3" aria-hidden /> Follow up {formatDate(card.followUpDate)}

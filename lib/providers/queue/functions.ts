@@ -1,5 +1,7 @@
 import { log } from "@/lib/logger";
+import { completeFinishedSequences } from "@/lib/outreach/completion";
 import { evaluateAllHealth } from "@/lib/outreach/health";
+import { dispatchPolls, pollMailbox } from "@/lib/outreach/replies";
 import { dispatchDueMessages, sendMessage } from "@/lib/outreach/send";
 import type { QueueFunction } from "@/lib/providers/queue/types";
 
@@ -20,7 +22,19 @@ export const QUEUE_FUNCTIONS: QueueFunction[] = [
     // The database holds the schedule; this tick turns "due" into one send event per message.
     id: "outreach-tick",
     trigger: { cron: "*/5 * * * *" },
-    handler: async () => dispatchDueMessages(),
+    handler: async () => ({ ...(await dispatchDueMessages()), ...(await completeFinishedSequences()) }),
+  },
+  {
+    // Every 10 minutes: one poll event per connected mailbox with a running campaign.
+    id: "outreach-poll-dispatch",
+    trigger: { cron: "*/10 * * * *" },
+    handler: async () => ({ mailboxes: await dispatchPolls() }),
+  },
+  {
+    id: "outreach-poll",
+    trigger: { event: "outreach/poll.requested" },
+    retries: 3,
+    handler: async (data: { accountId: string }) => pollMailbox(data.accountId),
   },
   {
     id: "outreach-send",

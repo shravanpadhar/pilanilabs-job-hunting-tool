@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/notice";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { formatDate } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Outreach" };
 export const dynamic = "force-dynamic";
@@ -20,7 +21,10 @@ export default async function OutreachInboxPage() {
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
     take: 100,
-    select: { id: true, status: true, jobSnapshot: true, createdAt: true, _count: { select: { targets: true } } },
+    select: {
+      id: true, status: true, jobSnapshot: true, createdAt: true,
+      targets: { where: { state: { not: "CANCELLED" } }, select: { state: true, messages: { where: { state: "SCHEDULED" }, orderBy: { scheduledAt: "asc" }, take: 1, select: { scheduledAt: true, step: true } } } },
+    },
   });
 
   return (
@@ -41,12 +45,18 @@ export default async function OutreachInboxPage() {
         <ul className="grid gap-3">
           {campaigns.map((c) => {
             const snap = c.jobSnapshot as { title?: string; company?: string };
+            const replied = c.targets.filter((t) => t.state === "REPLIED").length;
+            const next = c.targets.flatMap((t) => t.messages).filter((m) => m.scheduledAt).sort((a, b) => a.scheduledAt!.getTime() - b.scheduledAt!.getTime())[0];
             return (
               <li key={c.id}>
                 <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
                   <div>
                     <p className="font-semibold">{snap.title ?? "Job"}</p>
-                    <p className="text-sm text-muted-foreground">{snap.company} · {c._count.targets} people</p>
+                    <p className="text-sm text-muted-foreground">
+                      {snap.company} · {c.targets.length} {c.targets.length === 1 ? "person" : "people"}
+                      {replied ? ` · ${replied} replied` : ""}
+                      {next ? ` · next email ${formatDate(next.scheduledAt!)}` : ""}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant={STATUS_VARIANT[c.status]}>{c.status.toLowerCase()}</Badge>

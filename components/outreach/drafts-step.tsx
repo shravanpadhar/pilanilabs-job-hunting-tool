@@ -21,7 +21,7 @@ interface SchedulePreview {
 const STATE_VARIANT = { DRAFT: "muted", APPROVED: "success", SCHEDULED: "success", SENDING: "warning", SENT: "default", FAILED: "danger", CANCELLED: "muted" } as const;
 const CHANNEL_LABEL = { EMAIL: "Email", LINKEDIN_NOTE: "LinkedIn connection note", LINKEDIN_MESSAGE: "LinkedIn message" } as const;
 
-function MessageEditor({ msg, onChanged }: { msg: Msg; onChanged: (m: Partial<Msg> & { id: string }) => void }) {
+export function MessageEditor({ msg, onChanged }: { msg: Msg; onChanged: (m: Partial<Msg> & { id: string }) => void }) {
   const [subject, setSubject] = useState(msg.subject ?? "");
   const [body, setBody] = useState(msg.body);
   const [busy, setBusy] = useState<"save" | "approve" | null>(null);

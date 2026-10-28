@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DraftsStep } from "@/components/outreach/drafts-step";
 import { StartPanel } from "@/components/outreach/start-panel";
+import { ThreadsView } from "@/components/outreach/threads-view";
 import { TargetsStep } from "@/components/outreach/targets-step";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -107,9 +108,18 @@ export function OutreachWizard({ initialJobId, initialCampaignId, children }: { 
           <h2 className="text-2xl font-semibold" data-testid="campaign-title">{campaign.jobSnapshot.title}</h2>
           <p>{campaign.jobSnapshot.company}{campaign.jobSnapshot.location ? ` · ${campaign.jobSnapshot.location}` : ""}</p>
         </Card>
-        <TargetsStep campaignId={campaign.id} initial={campaign.targets} onChange={(targets) => setCampaign((c) => (c ? { ...c, targets } : c))} />
-        <DraftsStep campaignId={campaign.id} ready={campaign.targets.some((t) => t.canProceed)} onApprovedCountChange={setApproved} />
-        <StartPanel campaignId={campaign.id} status={campaign.status} approvedCount={approved} onStatus={(status) => setCampaign((c) => (c ? { ...c, status } : c))} />
+        {campaign.status === "DRAFT" ? (
+          <>
+            <TargetsStep campaignId={campaign.id} initial={campaign.targets} onChange={(targets) => setCampaign((c) => (c ? { ...c, targets } : c))} />
+            <DraftsStep campaignId={campaign.id} ready={campaign.targets.some((t) => t.canProceed)} onApprovedCountChange={setApproved} />
+            <StartPanel campaignId={campaign.id} status={campaign.status} approvedCount={approved} onStatus={(status) => setCampaign((c) => (c ? { ...c, status } : c))} />
+          </>
+        ) : (
+          <>
+            <StartPanel campaignId={campaign.id} status={campaign.status} approvedCount={approved} onStatus={(status) => setCampaign((c) => (c ? { ...c, status } : c))} />
+            <ThreadsView campaignId={campaign.id} onReopen={() => loadCampaign(campaign.id)} />
+          </>
+        )}
         {children?.(campaign)}
       </div>
     );

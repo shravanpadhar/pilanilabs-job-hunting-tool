@@ -5,6 +5,7 @@ import { composeEmailText, emailFooter } from "@/lib/compliance/optout";
 import { suppressedSet } from "@/lib/compliance/suppression";
 import { db } from "@/lib/db";
 import { AppError, notFound } from "@/lib/errors";
+import { scheduleLateApproval } from "@/lib/outreach/activate";
 import { loadVerifyContext, structureViolations } from "@/lib/outreach/draft";
 import { requireCompleteProfile } from "@/lib/outreach/profile";
 import { targetGate } from "@/lib/outreach/targets";
@@ -116,7 +117,8 @@ export async function approveMessage(userId: string, messageId: string): Promise
   });
   if (res.count === 0) throw new AppError("The message changed while you were approving it. Please review and approve again.", 409, "changed");
   await audit({ userId, action: "message.approved", entityType: "OutreachMessage", entityId: message.id, detail: { channel: message.channel, step: message.step, hash: hash.slice(0, 16) } }, { strict: true });
-  if (message.step === 1 && message.channel === "EMAIL") await db.outreachTarget.update({ where: { id: target.id }, data: { state: "APPROVED" } });
+  if (message.step === 1 && message.channel === "EMAIL" && target.campaign.status === "DRAFT") await db.outreachTarget.update({ where: { id: target.id }, data: { state: "APPROVED" } });
+  if (["ACTIVE", "PAUSED"].includes(target.campaign.status)) await scheduleLateApproval(message.id);
   return db.outreachMessage.findUniqueOrThrow({ where: { id: message.id } });
 }
 

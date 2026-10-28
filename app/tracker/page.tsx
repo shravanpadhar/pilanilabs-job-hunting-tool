@@ -18,7 +18,14 @@ export default async function TrackerPage() {
     include: { job: { select: { id: true, title: true, company: true, location: true } }, tailoredResume: { select: { id: true } } },
   });
 
+  const campaigns = await db.outreachCampaign.findMany({
+    where: { userId: user.id, jobId: { in: apps.map((a) => a.jobId) }, status: { in: ["ACTIVE", "PAUSED"] } },
+    select: { id: true, jobId: true, status: true, targets: { select: { state: true } } },
+  });
+  const outreachByJob = new Map(campaigns.map((c) => [c.jobId, { campaignId: c.id, status: c.status, replies: c.targets.filter((t) => t.state === "REPLIED").length }]));
+
   const cards: TrackerCard[] = apps.map((a) => ({
+    outreach: outreachByJob.get(a.jobId) ?? null,
     id: a.id,
     status: a.status,
     notes: a.notes,

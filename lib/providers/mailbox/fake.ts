@@ -22,6 +22,8 @@ interface FakeState {
   counter: number;
 }
 
+// Ids carry a random per-process prefix so they stay globally unique, like real provider ids, even after reset().
+const RUN = randomBytes(3).toString("hex");
 const g = globalThis as unknown as { __fakeMailbox?: FakeState };
 const state = (): FakeState => (g.__fakeMailbox ??= { sent: [], inbound: new Map(), failures: [], counter: 0 });
 
@@ -40,7 +42,7 @@ export const fakeMailbox = {
     const s = state();
     s.counter++;
     const msg: InboundMessage = {
-      providerMessageId: m.providerMessageId ?? `fake-in-${s.counter}`, threadId, from: m.from, receivedAt: m.receivedAt ?? new Date(),
+      providerMessageId: m.providerMessageId ?? `fake-in-${RUN}-${s.counter}-${randomBytes(2).toString("hex")}`, threadId, from: m.from, receivedAt: m.receivedAt ?? new Date(),
       snippet: m.snippet ?? m.text.slice(0, 300), text: m.text, headers: m.headers ?? {},
     };
     s.inbound.set(threadId, [...(s.inbound.get(threadId) ?? []), msg]);
@@ -67,8 +69,8 @@ export class FakeMailbox implements MailboxProvider {
     if (failure === "transient") throw new Error("Simulated transient mail failure (503)");
     if (failure === "permanent") throw new PermanentMailError("Simulated: the address does not exist", "invalid_recipient");
     s.counter++;
-    const threadId = mail.threadId ?? `fake-thread-${s.counter}`;
-    const providerMessageId = `fake-msg-${s.counter}`;
+    const threadId = mail.threadId ?? `fake-thread-${RUN}-${s.counter}-${randomBytes(2).toString("hex")}`;
+    const providerMessageId = `fake-msg-${RUN}-${s.counter}-${randomBytes(2).toString("hex")}`;
     s.sent.push({ ...mail, accountId, providerMessageId, threadId, sentAt: new Date() });
     if (failure === "crash_after_send") throw new Error("Simulated crash after the provider accepted the message");
     return { providerMessageId, threadId };
