@@ -1,5 +1,6 @@
 import { outreach } from "@/config/outreach";
 import { audit } from "@/lib/audit";
+import { ensureTrialCredits, spendForTargets } from "@/lib/billing/credits";
 import { clockNow } from "@/lib/clock";
 import { db } from "@/lib/db";
 import { AppError, notFound } from "@/lib/errors";
@@ -31,6 +32,10 @@ export async function activateCampaign(userId: string, campaignId: string) {
   const room = Math.max(0, outreach.maxTargetsPerCompanyPerCampaign * 2 - alreadyReached);
   if (room === 0) throw new AppError("You have already reached out to enough people at this company.", 409, "company_limit");
   const chosen = ready.slice(0, Math.min(outreach.maxTargetsPerCompanyPerCampaign, room));
+
+  // Credits: one per person contacted, charged atomically; a refund follows if the address proves undeliverable.
+  await ensureTrialCredits(userId);
+  await spendForTargets(userId, chosen.map((t) => t.id));
 
   const now = await clockNow();
   let scheduled = 0;

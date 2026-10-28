@@ -1,6 +1,7 @@
 import { outreach } from "@/config/outreach";
 import { isBlockedCountry } from "@/config/regions";
 import { audit } from "@/lib/audit";
+import { refundTarget } from "@/lib/billing/credits";
 import { clockNow } from "@/lib/clock";
 import { optOutToken } from "@/lib/compliance/optout";
 import { addSuppression, suppressedSet } from "@/lib/compliance/suppression";
@@ -188,6 +189,7 @@ async function failPermanent(m: { id: string; targetId: string; target: { email:
   if (err.code === "invalid_recipient" && m.target.email) {
     // A hard bounce: never contact this address again, and stop the rest of the sequence.
     await addSuppression(m.target.email, "BOUNCE");
+    await refundTarget(userId, m.targetId);
     await db.outreachTarget.update({ where: { id: m.targetId }, data: { state: "BOUNCED" } });
     await db.outreachMessage.updateMany({ where: { targetId: m.targetId, state: { in: ["DRAFT", "APPROVED", "SCHEDULED"] } }, data: { state: "CANCELLED", scheduledAt: null } });
   }

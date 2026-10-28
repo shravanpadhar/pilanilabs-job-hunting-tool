@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { OutreachProfile } from "@/generated/prisma/client";
 import { audit } from "@/lib/audit";
+import { ensureTrialCredits } from "@/lib/billing/credits";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { isValidTimeZone } from "@/lib/outreach/schedule";
@@ -40,5 +41,6 @@ export async function saveOutreachProfile(userId: string, input: unknown) {
   if (data.notifyWhatsapp && !data.whatsappNumber) throw new AppError("Add a WhatsApp number to turn WhatsApp notifications on.", 400, "validation");
   const saved = await db.outreachProfile.upsert({ where: { userId }, create: { userId, ...data }, update: data });
   await audit({ userId, action: "outreach_profile.saved", entityType: "OutreachProfile", entityId: userId });
+  await ensureTrialCredits(userId);
   return saved;
 }

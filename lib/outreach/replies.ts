@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { OutreachMessage, OutreachTarget, OutreachCampaign } from "@/generated/prisma/client";
 import { callJson } from "@/lib/ai/client";
 import { audit } from "@/lib/audit";
+import { chargeForReply, refundTarget } from "@/lib/billing/credits";
 import { addSuppression } from "@/lib/compliance/suppression";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -118,11 +119,15 @@ export async function processInbound(userId: string, accountEmail: string, inbou
   const snippet = (inbound.snippet || inbound.text).replace(/\s+/g, " ").trim().slice(0, 300);
 
   const newState = verdict?.kind === "bounce_hard" || verdict?.kind === "bounce_soft" ? "BOUNCED" : verdict && verdict.suppress && verdict.suppress !== "BOUNCE" ? "OPTED_OUT" : "REPLIED";
+  let replyId: string;
   try {
-    await db.reply.create({ data: { messageId: loc.id, providerMessageId: inbound.providerMessageId, receivedAt: inbound.receivedAt, snippet, classification, ruleHit: verdict?.ruleHit ?? null } });
+    replyId = (await db.reply.create({ data: { messageId: loc.id, providerMessageId: inbound.providerMessageId, receivedAt: inbound.receivedAt, snippet, classification, ruleHit: verdict?.ruleHit ?? null } })).id;
   } catch {
     return { processed: false, duplicate: true }; // lost a race with another poller
   }
+  // Money follows outcomes: a hard bounce is refunded; a real positive reply may be charged if pay-on-reply is switched on.
+  if (verdict?.kind === "bounce_hard") await refundTarget(userId, loc.targetId);
+  if (!verdict && ["INTERESTED", "REFERRAL"].includes(classification)) await chargeForReply(userId, replyId);
 
   // The sequence for this person stops, whatever the reply says.
   await db.outreachTarget.update({ where: { id: loc.targetId }, data: { state: newState } });

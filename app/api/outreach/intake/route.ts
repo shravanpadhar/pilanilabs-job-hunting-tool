@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUserApi } from "@/lib/auth";
+import { assertWithinCostCeiling } from "@/lib/billing/cost";
 import { handler } from "@/lib/errors";
 import { intakeFromPaste, intakeFromUrl, pasteSchema } from "@/lib/outreach/intake";
 import { assertAiQuota } from "@/lib/rate-limit";
@@ -18,6 +19,7 @@ export const POST = handler("outreach_intake", async (request: Request) => {
   const user = await requireUserApi();
   const body = bodySchema.parse(await request.json());
   await assertAiQuota(user.id, "extract_job");
+  await assertWithinCostCeiling(user.id);
   const result = "url" in body ? await intakeFromUrl(user.id, body.url) : await intakeFromPaste(user.id, body.pasted);
   return NextResponse.json(result);
 });

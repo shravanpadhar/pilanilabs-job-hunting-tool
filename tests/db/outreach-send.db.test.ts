@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { advanceClock, resetClock } from "@/lib/clock";
 import { optOutToken } from "@/lib/compliance/optout";
 import { isSuppressed } from "@/lib/compliance/suppression";
+import { grantCredits } from "@/lib/billing/credits";
 import { db } from "@/lib/db";
 import { setCampaignStatus, activateCampaign } from "@/lib/outreach/activate";
 import { approveMessage } from "@/lib/outreach/approval";
@@ -62,6 +63,7 @@ beforeAll(async () => {
   });
   await db.resume.create({ data: { userId, fileName: "r.pdf", rawText: "Asha Verma", parsedJson: parsed as object, isPrimary: true } });
   await saveOutreachProfile(userId, { senderName: "Asha Verma", postalAddress: "12 MG Road, Bengaluru 560001, India", timeZone: "Asia/Kolkata" });
+  await grantCredits(userId, 1000, "ADJUSTMENT", "test", "seed"); // plenty of credits: these tests are about sending, not billing
   const acct = await saveConnectedAccount({ userId, provider: "GMAIL", accountEmail: `asha.${tag}@gmail.test`, refreshToken: "fake-refresh", scopes: ["gmail.send"] });
   accountId = acct.id;
   // An established mailbox (past warm-up) with a generous cap, so most tests are about the other rules.

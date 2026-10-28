@@ -2,6 +2,7 @@ import { z } from "zod";
 import { outreach } from "@/config/outreach";
 import { callJson } from "@/lib/ai/client";
 import { audit } from "@/lib/audit";
+import { assertWithinCostCeiling } from "@/lib/billing/cost";
 import { db } from "@/lib/db";
 import { AppError, notFound } from "@/lib/errors";
 import { log } from "@/lib/logger";
@@ -147,6 +148,7 @@ export async function loadVerifyContext(userId: string, campaign: { jobSnapshot:
 /** Write drafts for every target the candidate may contact. Approved messages are never overwritten. */
 export async function generateDraftsForCampaign(userId: string, campaignId: string) {
   const profile = await requireCompleteProfile(userId);
+  await assertWithinCostCeiling(userId);
   const campaign = await db.outreachCampaign.findFirst({ where: { id: campaignId, userId }, include: { targets: { include: { messages: true } } } });
   if (!campaign) throw notFound("Campaign");
   if (!["DRAFT", "ACTIVE", "PAUSED"].includes(campaign.status)) throw new AppError("This campaign is finished.", 409, "campaign_closed");

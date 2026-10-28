@@ -1,6 +1,7 @@
 import { outreach } from "@/config/outreach";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
+import { getLimits } from "@/lib/settings";
 import { daysAgo } from "@/lib/utils";
 
 /** Record the cost of one licensed-provider call against a candidate (margin control, spec C2 / section 9). */
@@ -21,7 +22,7 @@ export async function candidateSpendMicros(userId: string, windowDays: number = 
 
 export async function costCeilingMicros(userId: string): Promise<number> {
   const profile = await db.outreachProfile.findUnique({ where: { userId }, select: { costCeilingMicros: true } });
-  return profile?.costCeilingMicros ?? outreach.costCeilingMicros;
+  return profile?.costCeilingMicros ?? (await getLimits()).costCeilingMicros;
 }
 
 /** Hard per-candidate ceiling: call before any paid provider or AI call that outreach triggers. */

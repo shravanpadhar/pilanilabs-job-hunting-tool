@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { isSuppressed } from "@/lib/compliance/suppression";
+import { grantCredits } from "@/lib/billing/credits";
 import { db } from "@/lib/db";
 import { activateCampaign, reopenForNextTargets } from "@/lib/outreach/activate";
 import { approveMessage, editMessage } from "@/lib/outreach/approval";
@@ -65,6 +66,7 @@ beforeAll(async () => {
   });
   await db.resume.create({ data: { userId, fileName: "r.pdf", rawText: "Asha Verma", parsedJson: parsed as object, isPrimary: true } });
   await saveOutreachProfile(userId, { senderName: "Asha Verma", postalAddress: "12 MG Road, Bengaluru 560001, India", timeZone: "Asia/Kolkata", notifyEmail: true });
+  await grantCredits(userId, 1000, "ADJUSTMENT", "test", "seed"); // plenty of credits: these tests are about sending, not billing
   accountEmail = `asha.${tag}@gmail.test`;
   const acct = await saveConnectedAccount({ userId, provider: "GMAIL", accountEmail, refreshToken: "fake-refresh", scopes: ["gmail.send", "gmail.readonly"] });
   accountId = acct.id;

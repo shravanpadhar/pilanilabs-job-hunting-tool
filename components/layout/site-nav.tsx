@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/companies", label: "Companies" },
   { href: "/outreach", label: "Outreach" },
   { href: "/tracker", label: "Tracker" },
+  { href: "/insights", label: "Insights" },
   { href: "/searches", label: "Saved searches" },
   { href: "/ats", label: "ATS checker" },
 ];
