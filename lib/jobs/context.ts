@@ -5,7 +5,7 @@ import { resumeSchema, type ResumeData } from "@/lib/resume/schema";
 /** Load a job plus the user's primary resume (parsed). Throws friendly errors if either is missing. */
 export async function loadJobAndResume(userId: string, jobId: string) {
   const [job, resume] = await Promise.all([
-    db.job.findUnique({ where: { id: jobId } }),
+    db.job.findFirst({ where: { id: jobId, OR: [{ ownerUserId: null }, { ownerUserId: userId }] } }),
     db.resume.findFirst({ where: { userId, isPrimary: true } }),
   ]);
   if (!job) throw notFound("Job");

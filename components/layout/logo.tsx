@@ -1,14 +1,18 @@
+import Image from "next/image";
 import Link from "next/link";
 
+/** The supplied PilaniLabs logo (static asset in /public). In dark mode it sits on a light plate so it stays legible. */
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <Link href="/" className={`inline-flex items-center gap-2 ${className}`} aria-label="Pilanilabs home">
-      <span aria-hidden className="grid size-8 place-items-center rounded-[6px] bg-secondary font-heading text-lg font-bold text-primary dark:bg-link dark:text-secondary">
-        P
-      </span>
-      <span className="font-heading text-xl font-semibold tracking-tight">
-        Pilani<span className="text-gold-ink">labs</span>
-      </span>
+    <Link href="/" className={`inline-flex items-center ${className}`} aria-label="PilaniLabs home">
+      <Image
+        src="/pilanilabs-logo.png"
+        alt="PilaniLabs, AI Training and Consulting"
+        width={695}
+        height={163}
+        priority
+        className="h-10 w-auto rounded-md dark:bg-white dark:px-2 dark:py-0.5"
+      />
     </Link>
   );
 }

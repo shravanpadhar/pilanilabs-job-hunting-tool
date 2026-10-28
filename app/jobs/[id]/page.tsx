@@ -21,7 +21,7 @@ type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const job = await db.job.findUnique({ where: { id }, select: { title: true, company: true } }).catch(() => null);
+  const job = await db.job.findFirst({ where: { id, ownerUserId: null }, select: { title: true, company: true } }).catch(() => null);
   return { title: job ? `${job.title} at ${job.company}` : "Job" };
 }
 
@@ -32,7 +32,7 @@ export default async function JobDetailPage({ params }: Props) {
   const { id } = await params;
 
   const [job, match, application, resume] = await Promise.all([
-    db.job.findUnique({ where: { id } }),
+    db.job.findFirst({ where: { id, OR: [{ ownerUserId: null }, { ownerUserId: user.id }] } }),
     db.match.findUnique({ where: { userId_jobId: { userId: user.id, jobId: id } } }),
     db.application.findUnique({ where: { userId_jobId: { userId: user.id, jobId: id } } }),
     db.resume.findFirst({ where: { userId: user.id, isPrimary: true }, select: { id: true } }),

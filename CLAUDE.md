@@ -7,12 +7,19 @@ Job-search workspace (existing) + AI outreach engine (being added). Read `docs/P
 npm run dev            # Next dev server (DEV_AUTH_BYPASS=true in .env.local skips Supabase auth)
 npm run typecheck      # tsc --noEmit
 npm run lint           # eslint .
-npm test               # vitest run (tests/unit) — 79 baseline tests, no DB needed
+npm test               # vitest run (tests/unit) — pure unit tests, no DB needed
+npm run test:db        # vitest (tests/db): suppression, encryption at rest, constraints, RLS on a Supabase-shaped DB; localhost only
 npm run test:e2e       # playwright (desktop + 375px); needs migrated + seeded Postgres: db:migrate, db:seed
 npm run build          # prisma generate && next build (must succeed with no secrets)
+npm run db:local       # start a local Postgres (embedded, port 54329, data in .local-pg/); keeps running
 npm run db:migrate     # prisma migrate dev   |  db:deploy → migrate deploy  |  db:seed
 ```
-Never run migrations against a remote/production database without the owner's explicit OK.
+`.env.local` points at a REMOTE Supabase database. For local work override it in the shell (PowerShell shown; bash uses `export`):
+```powershell
+$env:DATABASE_URL="postgresql://postgres:postgres@localhost:54329/pilanilabs"; $env:DIRECT_URL=$env:DATABASE_URL
+$env:ANTHROPIC_API_KEY=""; $env:OPENROUTER_API_KEY=""; $env:AI_PROVIDER="anthropic"   # e2e must not call live AI
+```
+Never run migrations against a remote/production database without the owner's explicit OK. The first cold e2e run can flake on 5 s timeouts while Next compiles; re-run before treating it as a failure.
 
 ## Layout
 - `app/` routes + `app/api/*` handlers; `proxy.ts` guards sessions (public paths list lives there).

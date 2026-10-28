@@ -33,7 +33,7 @@ export async function computeMatchesForUser(userId: string, opts: { skipAi?: boo
   const { stage1, ai, hash } = buildProfiles(resumeRow.id, resume, prefs);
 
   const jobs = await db.job.findMany({
-    where: { postedAt: { gte: daysAgo(matching.windowDays) } },
+    where: { ownerUserId: null, postedAt: { gte: daysAgo(matching.windowDays) } },
     orderBy: { postedAt: "desc" },
     take: 5000,
     select: {

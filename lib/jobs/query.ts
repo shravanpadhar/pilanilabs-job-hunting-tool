@@ -56,7 +56,8 @@ function contains(value: string): Prisma.StringFilter {
 
 /** Job-level filters shared by the matched feed, Hidden jobs and saved searches. */
 export function buildJobWhere(f: JobFilters): Prisma.JobWhereInput {
-  const and: Prisma.JobWhereInput[] = [{ postedAt: { gte: daysAgo(f.postedWithin ?? 14) } }];
+  // ownerUserId: null keeps user-private jobs (pasted outreach links) out of every shared feed.
+  const and: Prisma.JobWhereInput[] = [{ ownerUserId: null }, { postedAt: { gte: daysAgo(f.postedWithin ?? 14) } }];
   if (f.q) {
     const terms = f.q.split(/\s+/).filter(Boolean).slice(0, 5);
     for (const t of terms) and.push({ OR: [{ title: contains(t) }, { company: contains(t) }, { descriptionText: contains(t) }] });

@@ -23,7 +23,7 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 
   const [resume, totalJobs] = await Promise.all([
     db.resume.findFirst({ where: { userId: user.id, isPrimary: true }, select: { id: true } }),
-    db.job.count(),
+    db.job.count({ where: { ownerUserId: null } }),
   ]);
 
   if (!resume) {

@@ -16,7 +16,7 @@ export default async function TailorPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
 
   const [job, resume] = await Promise.all([
-    db.job.findUnique({ where: { id }, select: { id: true, title: true, company: true, applyUrl: true, source: true } }),
+    db.job.findFirst({ where: { id, OR: [{ ownerUserId: null }, { ownerUserId: user.id }] }, select: { id: true, title: true, company: true, applyUrl: true, source: true } }),
     db.resume.findFirst({ where: { userId: user.id, isPrimary: true } }),
   ]);
   if (!job) notFound();

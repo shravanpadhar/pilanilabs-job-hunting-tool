@@ -82,6 +82,85 @@ export const env = {
   get twilioContentSid() {
     return read("TWILIO_WHATSAPP_CONTENT_SID");
   },
+
+  // ── Outreach engine ─────────────────────────────────────────────────────────
+  // Each provider is "real" when its key is configured and "fake" otherwise, unless forced with *_PROVIDER.
+  get queueProvider(): "inngest" | "inline" {
+    const v = read("QUEUE_PROVIDER")?.toLowerCase();
+    if (v === "inngest" || v === "inline") return v;
+    return read("INNGEST_EVENT_KEY") ? "inngest" : "inline";
+  },
+  get inngestEventKey() {
+    return read("INNGEST_EVENT_KEY");
+  },
+  get inngestSigningKey() {
+    return read("INNGEST_SIGNING_KEY");
+  },
+  get googleClientId() {
+    return read("GOOGLE_OAUTH_CLIENT_ID");
+  },
+  get googleClientSecret() {
+    return read("GOOGLE_OAUTH_CLIENT_SECRET");
+  },
+  get microsoftClientId() {
+    return read("MICROSOFT_OAUTH_CLIENT_ID");
+  },
+  get microsoftClientSecret() {
+    return read("MICROSOFT_OAUTH_CLIENT_SECRET");
+  },
+  get mailboxProvider(): "gmail" | "fake" {
+    const v = read("MAILBOX_PROVIDER")?.toLowerCase();
+    if (v === "gmail" || v === "fake") return v;
+    return read("GOOGLE_OAUTH_CLIENT_ID") && read("GOOGLE_OAUTH_CLIENT_SECRET") ? "gmail" : "fake";
+  },
+  get contactDataApiKey() {
+    return read("CONTACT_DATA_API_KEY");
+  },
+  get contactDataProvider(): "licensed" | "fake" {
+    const v = read("CONTACT_DATA_PROVIDER")?.toLowerCase();
+    if (v === "licensed" || v === "fake") return v;
+    return read("CONTACT_DATA_API_KEY") ? "licensed" : "fake";
+  },
+  get emailVerifyApiKey() {
+    return read("EMAIL_VERIFY_API_KEY");
+  },
+  get emailVerifyProvider(): "licensed" | "fake" {
+    const v = read("EMAIL_VERIFY_PROVIDER")?.toLowerCase();
+    if (v === "licensed" || v === "fake") return v;
+    return read("EMAIL_VERIFY_API_KEY") ? "licensed" : "fake";
+  },
+  /** 32 random bytes, base64 or hex. Wraps the per-token data keys of stored mailbox tokens. */
+  get tokenEncryptionKey() {
+    return read("TOKEN_ENCRYPTION_KEY");
+  },
+  /** Previous key kept during a rotation so old tokens can still be read. */
+  get tokenEncryptionKeyPrevious() {
+    return read("TOKEN_ENCRYPTION_KEY_PREVIOUS");
+  },
+  /** HMAC key for suppression-list hashes (D-09). Losing or changing it makes existing entries stop matching. */
+  get suppressionHashKey() {
+    return read("SUPPRESSION_HASH_KEY");
+  },
+  /** HMAC key that signs opt-out links in outgoing email. */
+  get optOutSigningKey() {
+    return read("OPT_OUT_SIGNING_KEY");
+  },
+  get adminEmails(): string[] {
+    return (read("ADMIN_EMAILS") ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+  },
+  /** Global kill switch: nothing is sent unless this is "true". Off by default in production. */
+  get outreachSendingEnabled(): boolean {
+    const v = read("OUTREACH_SENDING_ENABLED")?.toLowerCase();
+    if (v === "true" || v === "1") return true;
+    if (v === "false" || v === "0") return false;
+    return process.env.NODE_ENV !== "production";
+  },
+  get sentryDsn() {
+    return read("SENTRY_DSN");
+  },
 };
 
 export const flags = {
@@ -107,6 +186,13 @@ export const flags = {
   },
   get whatsapp() {
     return Boolean(env.twilioSid && env.twilioToken && env.twilioWhatsappFrom);
+  },
+  /**
+   * Local / test-only switch that lets dev-only endpoints (fake clock, injected replies) and fixture
+   * HTTP responses exist. Hard-disabled in production no matter what the variable says.
+   */
+  get externalFakes() {
+    return process.env.NODE_ENV !== "production" && process.env.EXTERNAL_FAKES === "true";
   },
 };
 

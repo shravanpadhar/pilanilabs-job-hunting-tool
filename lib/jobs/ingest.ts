@@ -101,7 +101,7 @@ export async function ingestJobs(jobs: NormalizedJob[]): Promise<IngestResult> {
 /** Remove stale jobs nobody is tracking (not seen for `days`). Seed rows are kept. */
 export async function purgeStaleJobs(days = 45): Promise<number> {
   const res = await db.job.deleteMany({
-    where: { fetchedAt: { lt: daysAgo(days) }, isSeed: false, applications: { none: {} } },
+    where: { ownerUserId: null, fetchedAt: { lt: daysAgo(days) }, isSeed: false, applications: { none: {} } },
   });
   return res.count;
 }
