@@ -1,6 +1,8 @@
 import { promises as dns } from "node:dns";
 import { isIP } from "node:net";
+import { flags } from "@/lib/env";
 import { AppError } from "@/lib/errors";
+import { fixturePage } from "@/lib/net/fixtures";
 
 /**
  * Fetching a URL the candidate pasted is an SSRF risk, so every hop is validated:
@@ -66,6 +68,14 @@ const TEXT_TYPES = /^(text\/|application\/(json|ld\+json|xhtml\+xml|xml))/i;
 
 export async function safeFetchText(raw: string, opts: SafeFetchOptions = {}): Promise<{ url: string; contentType: string; text: string }> {
   const { maxBytes = 2_000_000, timeoutMs = 10_000, fetchImpl = fetch, resolver } = opts;
+  if (flags.externalFakes) {
+    try {
+      const fx = fixturePage(new URL(raw));
+      if (fx) return { url: raw, contentType: fx.contentType, text: fx.text };
+    } catch {
+      /* not a URL: fall through to normal validation */
+    }
+  }
   let current = await assertPublicHttpsUrl(raw, resolver);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const res = await fetchImpl(current, {

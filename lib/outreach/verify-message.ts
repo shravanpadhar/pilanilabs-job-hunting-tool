@@ -42,6 +42,8 @@ const COMMON_CAPS = new Set([
   "linkedin", "gmail", "pdf", "cv", "ok", "ps", "p.s", "ai", "ml", "ui", "ux", "qa", "hr", "it", "api", "sql", "css", "html", "aws", "gcp", "sdk", "saas", "b2b", "b2c",
 ]);
 
+const SENTENCE_STARTERS = new Set(["at", "in", "on", "my", "the", "as", "for", "with", "we", "our", "this", "that", "these", "it", "so", "if", "when", "after", "before", "since", "also", "currently", "previously", "recently", "over", "during", "while", "by", "from", "to", "and", "but", "or", "your", "their", "his", "her", "its", "while", "being", "having", "working", "based"]);
+
 /** Candidate proper-noun phrases: runs of Capitalised / ALLCAPS tokens that are not just a sentence's first word. */
 export function properNounPhrases(text: string): string[] {
   const out: string[] = [];
@@ -49,6 +51,11 @@ export function properNounPhrases(text: string): string[] {
     const tokens = sentence.split(/\s+/).map((t) => t.replace(/^[("'“]+|[)"'”,;:!?]+$/g, "").replace(/'s$/i, "")).filter(Boolean);
     let run: string[] = [];
     const flush = (startsSentence: boolean) => {
+      // "At Initech I ..." : a sentence-opening function word is capitalised only by grammar, so drop it from the phrase.
+      if (startsSentence && run.length > 1 && SENTENCE_STARTERS.has(run[0].toLowerCase())) {
+        run = run.slice(1);
+        startsSentence = false;
+      }
       // A single capitalised word that merely starts a sentence is ordinary grammar, not a name.
       if (run.length > 1 || (run.length === 1 && !startsSentence)) out.push(run.join(" "));
       run = [];

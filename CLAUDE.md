@@ -13,6 +13,7 @@ npm run test:e2e       # playwright (desktop + 375px); needs migrated + seeded P
 npm run build          # prisma generate && next build (must succeed with no secrets)
 npm run db:local       # start a local Postgres (embedded, port 54329, data in .local-pg/); keeps running
 npm run db:migrate     # prisma migrate dev   |  db:deploy → migrate deploy  |  db:seed
+npm run eval:fabrication # verifier golden set (add -- --live to also draft with the real model)
 ```
 `.env.local` points at a REMOTE Supabase database. For local work override it in the shell (PowerShell shown; bash uses `export`):
 ```powershell

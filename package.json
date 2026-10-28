@@ -19,7 +19,8 @@
     "fetch-jobs": "tsx scripts/fetch-jobs.ts",
     "send-alerts": "tsx scripts/send-alerts.ts",
     "db:local": "tsx scripts/local-db.ts",
-    "test:db": "vitest run --config vitest.db.config.mts"
+    "test:db": "vitest run --config vitest.db.config.mts",
+    "eval:fabrication": "tsx evals/run-fabrication.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",

@@ -84,12 +84,14 @@ export async function sendMessage(messageId: string, deps: { now?: Date; mailbox
     const profile = composed.profile;
     const candidateTz = profile?.timeZone ?? "Asia/Kolkata";
     const dayStart = startOfLocalDay(now, candidateTz);
+    // "Today" is a closed window [midnight, next midnight) in the candidate's zone (36 h later is always inside the next day, DST included).
+    const dayEnd = startOfLocalDay(new Date(dayStart.getTime() + 36 * 3_600_000), candidateTz);
     const [prev, replies, suppressed, others] = await Promise.all([
       m.step > 1 ? db.outreachMessage.findUnique({ where: { targetId_channel_step: { targetId: m.targetId, channel: "EMAIL", step: m.step - 1 } } }) : null,
       db.reply.count({ where: { message: { targetId: m.targetId } } }),
       m.target.email ? suppressedSet([m.target.email]) : new Set<string>(),
       db.outreachMessage.findMany({
-        where: { id: { not: m.id }, channel: "EMAIL", target: { campaign: { userId } }, OR: [{ state: "SENT", sentAt: { gte: dayStart } }, { state: "SENDING", claimedAt: { gte: new Date(now.getTime() - outreach.staleClaimMinutes * 60_000) } }] },
+        where: { id: { not: m.id }, channel: "EMAIL", target: { campaign: { userId } }, OR: [{ state: "SENT", sentAt: { gte: dayStart, lt: dayEnd } }, { state: "SENDING", claimedAt: { gte: new Date(now.getTime() - outreach.staleClaimMinutes * 60_000) } }] },
         select: { state: true, sentAt: true, claimedAt: true },
       }),
     ]);

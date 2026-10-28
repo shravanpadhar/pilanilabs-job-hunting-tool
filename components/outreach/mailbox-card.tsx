@@ -75,9 +75,10 @@ export function MailboxCard() {
               </div>
               {a.status === "ACTIVE" ? (
                 <>
-                  <label className="flex flex-wrap items-center gap-2 text-sm">
+                  <label className="flex flex-wrap items-center gap-2 text-sm" htmlFor={`cap-${a.id}`}>
                     Daily send limit
                     <select
+                      id={`cap-${a.id}`}
                       className="h-9 rounded-input border border-input-border bg-input px-2 text-input-foreground"
                       value={a.dailySendCap}
                       onChange={(e) => act({ action: "set_cap", accountId: a.id, dailySendCap: Number(e.target.value) })}
