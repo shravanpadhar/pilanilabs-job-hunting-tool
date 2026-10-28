@@ -1,6 +1,7 @@
 import { log } from "@/lib/logger";
 import { completeFinishedSequences } from "@/lib/outreach/completion";
 import { evaluateAllHealth } from "@/lib/outreach/health";
+import { runLinkedInReminders } from "@/lib/outreach/linkedin";
 import { dispatchPolls, pollMailbox } from "@/lib/outreach/replies";
 import { dispatchDueMessages, sendMessage } from "@/lib/outreach/send";
 import type { QueueFunction } from "@/lib/providers/queue/types";
@@ -41,6 +42,12 @@ export const QUEUE_FUNCTIONS: QueueFunction[] = [
     trigger: { event: "outreach/send.requested" },
     retries: 3,
     handler: async (data: { messageId: string }) => sendMessage(data.messageId),
+  },
+  {
+    // Hourly: LinkedIn day-7 reminders, day-14 expiry prompts (withdraw, do not message), and the expiry record.
+    id: "outreach-linkedin",
+    trigger: { cron: "23 * * * *" },
+    handler: async () => runLinkedInReminders(),
   },
   {
     id: "outreach-health",

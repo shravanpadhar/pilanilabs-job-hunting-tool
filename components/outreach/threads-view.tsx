@@ -4,6 +4,7 @@ import { Check, Copy, ExternalLink, Mail, RefreshCw, Trophy } from "lucide-react
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { MessageEditor } from "@/components/outreach/drafts-step";
+import { LinkedInLane } from "@/components/outreach/linkedin-lane";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -134,10 +135,12 @@ export function ThreadsView({ campaignId, onReopen }: { campaignId: string; onRe
               </div>
             ))}
 
+            <LinkedInLane thread={t} onChanged={() => load()} />
+
             <details open={!t.replies.length}>
-              <summary className="cursor-pointer text-sm font-semibold">Messages ({t.messages.length})</summary>
+              <summary className="cursor-pointer text-sm font-semibold">Emails ({t.messages.filter((m) => m.channel === "EMAIL").length})</summary>
               <div className="mt-2 space-y-2">
-                {t.messages.map((m) => {
+                {t.messages.filter((m) => m.channel === "EMAIL").map((m) => {
                   const unsent = ["DRAFT", "APPROVED", "SCHEDULED", "FAILED"].includes(m.state);
                   return unsent && ["ACTIVE", "PAUSED", "DRAFT"].includes(data.status) ? (
                     <div key={m.id} className="space-y-1">
