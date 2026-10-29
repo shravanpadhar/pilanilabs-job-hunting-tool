@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { EmailVerification } from "@/generated/prisma/enums";
 import { env } from "@/lib/env";
 import { AppError } from "@/lib/errors";
+import { HunterEmailVerifier } from "@/lib/providers/verify/hunter";
 
 export interface VerifyResult {
   result: EmailVerification;
@@ -32,19 +33,6 @@ export class FakeEmailVerifier implements EmailVerifier {
   }
 }
 
-/** ADAPTER STUB — implement with the verification provider you choose; authenticate with EMAIL_VERIFY_API_KEY (server only). */
-export class LicensedEmailVerifierStub implements EmailVerifier {
-  readonly name = "licensed-stub";
-  async verify(_email: string): Promise<VerifyResult> {
-    void _email;
-    throw new AppError(
-      "No email verification provider is connected yet. Implement lib/providers/verify/index.ts (LicensedEmailVerifierStub) or set EMAIL_VERIFY_PROVIDER=fake.",
-      501,
-      "verifier_not_configured",
-    );
-  }
-}
-
 let override: EmailVerifier | null = null;
 export function setVerifierForTests(v: EmailVerifier | null) {
   override = v;
@@ -52,5 +40,9 @@ export function setVerifierForTests(v: EmailVerifier | null) {
 
 export function getEmailVerifier(): EmailVerifier {
   if (override) return override;
-  return env.emailVerifyProvider === "licensed" ? new LicensedEmailVerifierStub() : new FakeEmailVerifier();
+  if (env.emailVerifyProvider !== "licensed") return new FakeEmailVerifier();
+  const key = env.emailVerifyApiKey;
+  if (!key) throw new AppError("EMAIL_VERIFY_API_KEY is not set, so emails cannot be verified.", 501, "verifier_not_configured");
+  // "licensed" currently means Hunter.io. To use another vendor, add its adapter and return it here.
+  return new HunterEmailVerifier(key);
 }
