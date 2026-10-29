@@ -19,7 +19,7 @@ Details for each step: [OUTREACH-SETUP.md](OUTREACH-SETUP.md). Every assumption 
 | Optional: Sentry | error reporting | |
 
 ## C. Code only you can finish (I left clearly marked stubs)
-1. `lib/providers/contacts/licensed-stub.ts` and `lib/providers/verify/index.ts`: implement with the vendor you pick, then set `CONTACT_DATA_PROVIDER=licensed`, `EMAIL_VERIFY_PROVIDER=licensed` and the two API keys.
+1. **Contact data and email check (Hunter.io adapters now written, D-53).** Create a Hunter API key and set `CONTACT_DATA_API_KEY` and `EMAIL_VERIFY_API_KEY` (the same key), plus `CONTACT_DATA_PROVIDER=licensed` and `EMAIL_VERIFY_PROVIDER=licensed`. They have only been tested against mocked answers, so try a few real searches before relying on them. For a different vendor, add an adapter in `lib/providers/{contacts,verify}/`.
 2. `lib/providers/joblookup/index.ts` (optional): a licensed job lookup for LinkedIn/Indeed links. Without it the app asks the candidate to paste the description (works today).
 3. **Real payments**: credits, trial and ledger work, but buying is a fake gateway and is refused in production. Choose a processor and implement a checkout + webhook that calls `grantCredits(...)`.
 4. Set real prices in the admin console (`pricing` setting), after the pilot measures the cost of one campaign. Defaults are placeholders (5 free credits, 1 credit per person).

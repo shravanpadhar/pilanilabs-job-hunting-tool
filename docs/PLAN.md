@@ -75,8 +75,9 @@ lib/
   providers/                 # every external service: interface + fake + real adapter
     queue/      QueueProvider        inngest.ts · inline.ts(fake) · events.ts (Zod event schemas)
     mailbox/    MailboxProvider      gmail.ts · fake.ts           (outlook.ts stub, v2)
-    contacts/   ContactDataProvider  fake.ts · licensed-stub.ts   (clearly marked, throws NotConfigured)
-    verify/     EmailVerifier        fake.ts · licensed-stub.ts
+    contacts/   ContactDataProvider  fake.ts · hunter.ts          (Hunter.io domain search, D-53)
+    verify/     EmailVerifier        index.ts (fake) · hunter.ts      (Hunter.io email verifier, D-53)
+    hunter/     client.ts            shared authenticated GET + friendly errors for both Hunter adapters
     joblookup/  JobLookupProvider    jsearch.ts (existing key) · fake.ts      # LinkedIn/Indeed links
     notify/     Notifier             resend+twilio (existing channels) · fake.ts
     payments/   PaymentProvider      fake.ts                                   # real one = Q2
