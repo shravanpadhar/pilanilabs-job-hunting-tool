@@ -25,7 +25,7 @@ export const POST = handler("company_review", async (request: Request, { params 
   let company = await db.companyProfile.findUnique({ where: { slug } });
   if (!company) {
     // Create a bare profile for any company that has jobs in our database.
-    const job = await db.job.findFirst({ where: { companySlug: slug }, select: { company: true, companyLogoUrl: true } });
+    const job = await db.job.findFirst({ where: { ownerUserId: null, companySlug: slug }, select: { company: true, companyLogoUrl: true } });
     if (!job || slugifyCompany(job.company) !== slug) throw notFound("Company");
     company = await db.companyProfile.create({ data: { slug, name: job.company, logoUrl: job.companyLogoUrl } });
   }

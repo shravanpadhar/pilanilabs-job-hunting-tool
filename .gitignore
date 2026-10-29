@@ -14,3 +14,4 @@ test-results
 .vercel
 .DS_Store
 .idea/
+.local-pg

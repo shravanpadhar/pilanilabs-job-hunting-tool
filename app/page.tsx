@@ -81,7 +81,7 @@ export default async function LandingPage() {
             <li key={s.title}>
               <Card className="h-full space-y-3 p-6">
                 <div className="flex items-center gap-3">
-                  <span className="grid size-10 place-items-center rounded-full bg-secondary font-heading text-lg font-bold text-primary dark:bg-link dark:text-secondary">{i + 1}</span>
+                  <span className="grid size-10 place-items-center rounded-full bg-secondary font-heading text-lg font-bold text-brand dark:bg-brand dark:text-secondary">{i + 1}</span>
                   <s.icon className="size-5 text-gold-ink" aria-hidden />
                 </div>
                 <h3 className="text-2xl font-semibold">{s.title}</h3>

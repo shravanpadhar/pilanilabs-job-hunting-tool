@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireUserApi } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { flags } from "@/lib/env";
@@ -16,6 +17,10 @@ export const DELETE = handler("account_delete", async (request: Request) => {
   const user = await requireUserApi();
   bodySchema.parse(await request.json());
 
+  // Mailbox tokens: provider-side revocation is added with the Gmail adapter (Phase 4); the encrypted rows
+  // are deleted below by the cascade. SuppressionEntry and AuditEvent have no relation to User, so they
+  // outlive the account on purpose (hashed addresses and opaque ids only).
+  await audit({ userId: user.id, action: "account.deleted", entityType: "User", entityId: user.id }, { strict: true });
   await removeUserFiles(user.id);
   await db.user.delete({ where: { id: user.id } }); // cascades to resumes, matches, tailored resumes, applications, searches, usage, reviews…
 

@@ -12,7 +12,9 @@ const LINKS = [
   { href: "/jobs", label: "Jobs" },
   { href: "/hidden", label: "Hidden jobs" },
   { href: "/companies", label: "Companies" },
+  { href: "/outreach", label: "Outreach" },
   { href: "/tracker", label: "Tracker" },
+  { href: "/insights", label: "Insights" },
   { href: "/searches", label: "Saved searches" },
   { href: "/ats", label: "ATS checker" },
 ];

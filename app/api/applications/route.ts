@@ -17,7 +17,7 @@ export const POST = handler("application_create", async (request: Request) => {
   const user = await requireUserApi();
   const body = createSchema.parse(await request.json());
 
-  const job = await db.job.findUnique({ where: { id: body.jobId }, select: { id: true } });
+  const job = await db.job.findFirst({ where: { id: body.jobId, OR: [{ ownerUserId: null }, { ownerUserId: user.id }] }, select: { id: true } });
   if (!job) throw notFound("Job");
   if (body.tailoredResumeId) {
     const tr = await db.tailoredResume.findFirst({ where: { id: body.tailoredResumeId, userId: user.id }, select: { id: true } });

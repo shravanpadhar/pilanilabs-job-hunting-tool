@@ -20,7 +20,7 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
 
   const groups = await db.job.groupBy({
     by: ["companySlug"],
-    where: { postedAt: { gte: daysAgo(30) }, ...(q ? { company: { contains: q, mode: "insensitive" } } : {}) },
+    where: { ownerUserId: null, postedAt: { gte: daysAgo(30) }, ...(q ? { company: { contains: q, mode: "insensitive" } } : {}) },
     _count: { _all: true },
     _max: { company: true, companyLogoUrl: true },
     orderBy: { _count: { companySlug: "desc" } },

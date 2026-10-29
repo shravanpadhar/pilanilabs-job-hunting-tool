@@ -75,3 +75,13 @@ export async function removeUserFiles(userId: string): Promise<void> {
   }
   await fs.rm(path.join(LOCAL_ROOT, userId), { recursive: true, force: true });
 }
+
+/** Read a stored file back (the outreach sender needs the exact bytes that were approved). */
+export async function getFileBytes(storagePath: string): Promise<Buffer | null> {
+  if (flags.supabaseStorage) {
+    const { data, error } = await supabaseAdmin().storage.from(env.storageBucket).download(storagePath);
+    if (error || !data) return null;
+    return Buffer.from(await data.arrayBuffer());
+  }
+  return readLocalFile(storagePath);
+}

@@ -67,6 +67,14 @@ model User {
   alertLogs       AlertLog[]
   companyReviews  CompanyReview[]
   companyBoards   CompanyBoard[]
+
+  // Outreach engine
+  ownedJobs         Job[]              @relation("JobOwner")
+  outreachProfile   OutreachProfile?
+  connectedAccounts ConnectedAccount[]
+  campaigns         OutreachCampaign[]
+  creditLedger      CreditLedger[]
+  providerUsage     ProviderUsage[]
 }
 
 model Resume {
@@ -140,7 +148,11 @@ model Job {
   skills          String[]
   isDirect        Boolean  @default(false)
   isSeed          Boolean  @default(false)
+  // null = shared job (feed). Set = a job the user pasted for outreach; private to that user (never in the feed).
+  ownerUserId     String?  @db.Uuid
 
+  owner        User?              @relation("JobOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  campaigns    OutreachCampaign[]
   matches      Match[]
   tailored     TailoredResume[]
   applications Application[]
@@ -150,6 +162,7 @@ model Job {
   @@index([postedAt])
   @@index([companySlug])
   @@index([isDirect, postedAt])
+  @@index([ownerUserId])
 }
 
 model Match {
@@ -190,10 +203,11 @@ model TailoredResume {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  job          Job           @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  baseResume   Resume        @relation(fields: [baseResumeId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job          Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  baseResume   Resume             @relation(fields: [baseResumeId], references: [id], onDelete: Cascade)
   applications Application[]
+  campaigns    OutreachCampaign[]
 
   @@unique([userId, jobId, baseResumeId])
   @@index([userId])
@@ -259,7 +273,8 @@ model CompanyProfile {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  reviews CompanyReview[]
+  reviews   CompanyReview[]
+  campaigns OutreachCampaign[]
 }
 
 model CompanyReview {
@@ -305,6 +320,8 @@ model AiUsage {
   inputTokens     Int
   outputTokens    Int
   cacheReadTokens Int      @default(0)
+  // Estimated cost in millionths of a US dollar (config/ai-pricing.ts); null for rows logged before cost tracking.
+  costMicros      Int?
   createdAt       DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -352,4 +369,334 @@ model FetchRun {
   inserted   Int       @default(0)
   updated    Int       @default(0)
   error      String?
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Outreach engine (spec section 13, plus the additions logged in docs/DECISIONS.md D-07/D-08)
+// RLS for these tables lives in migration 0004_outreach_rls: owner read-only, writes only via the server.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ConnectedProvider {
+  GMAIL
+  OUTLOOK
+}
+
+enum ConnectedStatus {
+  ACTIVE
+  REVOKED
+  ERROR
+}
+
+enum CampaignMode {
+  REVIEW_ALL
+  APPROVE_FIRST
+  AUTO
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum TargetRole {
+  HIRING_MANAGER
+  TEAM_LEAD
+  RECRUITER
+  WARM_PATH
+}
+
+enum EmailVerification {
+  VALID
+  RISKY
+  INVALID
+  UNKNOWN
+}
+
+enum TargetState {
+  DISCOVERED
+  VERIFIED
+  DRAFTED
+  APPROVED
+  SCHEDULED
+  SENT
+  REPLIED
+  BOUNCED
+  OPTED_OUT
+  COMPLETED
+  CANCELLED
+}
+
+enum MessageChannel {
+  EMAIL
+  LINKEDIN_NOTE
+  LINKEDIN_MESSAGE
+}
+
+enum MessageState {
+  DRAFT
+  APPROVED
+  SCHEDULED
+  SENDING // claimed by one worker, provider call in flight (D-07)
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum LinkedInState {
+  NOT_STARTED
+  CONNECT_PENDING
+  ACCEPTED
+  MESSAGED
+  WITHDRAWN
+}
+
+enum MarkedBy {
+  USER
+  SYSTEM
+}
+
+enum ReplyClass {
+  INTERESTED
+  REFERRAL
+  NOT_NOW
+  NO
+  OUT_OF_OFFICE
+  UNSUBSCRIBE
+  OTHER
+}
+
+enum SuppressionReason {
+  OPT_OUT
+  BOUNCE
+  COMPLAINT
+  MANUAL
+}
+
+enum CreditReason {
+  PURCHASE
+  SPEND_TARGET
+  SPEND_VERIFY
+  REFUND
+  REPLY_BONUS
+  TRIAL_GRANT
+  ADJUSTMENT
+}
+
+/// The candidate's own mailbox. The refresh token is envelope-encrypted; never select it casually.
+model ConnectedAccount {
+  id                    String            @id @default(cuid())
+  userId                String            @db.Uuid
+  provider              ConnectedProvider
+  accountEmail          String
+  encryptedRefreshToken String            @db.Text
+  scopes                String[]
+  status                ConnectedStatus   @default(ACTIVE)
+  dailySendCap          Int               @default(20)
+  warmupStage           Int               @default(0)
+  // Provider-specific incremental sync position (Gmail historyId) for the reply poller.
+  syncCursor            String?
+  lastSyncAt            DateTime?
+  lastError             String?
+  connectedAt           DateTime          @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider, accountEmail])
+  @@index([status])
+}
+
+/// Sender identity and sending policy per candidate (one row per user).
+model OutreachProfile {
+  userId            String    @id @db.Uuid
+  senderName        String?
+  postalAddress     String?   @db.Text // CAN-SPAM physical address of record (D-21)
+  timeZone          String    @default("Asia/Kolkata") // IANA, the candidate's own
+  notifyEmail       Boolean   @default(true)
+  notifyWhatsapp    Boolean   @default(false)
+  whatsappNumber    String?
+  sendingPausedAt   DateTime?
+  pauseReason       String?
+  pausedBy          MarkedBy?
+  costCeilingMicros Int? // per-candidate override of the cost ceiling
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OutreachCampaign {
+  id               String         @id @default(cuid())
+  userId           String         @db.Uuid
+  jobId            String? // null for external links before a private Job row exists
+  sourceUrl        String?
+  jobSnapshot      Json
+  tailoredResumeId String?
+  companyId        String?
+  companyKey       String // slug of the employer; drives the one-touch-per-company-per-30-days rule
+  companyType      String? // bucket used by insights (startup | scaleup | enterprise | unknown)
+  mode             CampaignMode   @default(REVIEW_ALL)
+  status           CampaignStatus @default(DRAFT)
+  createdAt        DateTime       @default(now())
+  finishedAt       DateTime?
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job            Job?             @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  tailoredResume TailoredResume?  @relation(fields: [tailoredResumeId], references: [id], onDelete: SetNull)
+  company        CompanyProfile?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  targets        OutreachTarget[]
+
+  @@index([userId, status])
+  @@index([userId, companyKey, createdAt])
+}
+
+model OutreachTarget {
+  id                 String            @id @default(cuid())
+  campaignId         String
+  fullName           String
+  title              String?
+  roleType           TargetRole
+  companyDomain      String?
+  email              String?
+  emailHash          String? // HMAC of the normalised address, for suppression checks (D-09)
+  emailVerification  EmailVerification @default(UNKNOWN)
+  linkedinUrl        String?
+  country            String? // ISO-3166 alpha-2, lowercase, when the provider knows it
+  dataProvider       String
+  sourceRef          String? // provider's record id / evidence for a warm path
+  confidence         Float             @default(0)
+  // Set when the candidate explicitly accepted a below-threshold / risky / unknown-country contact.
+  riskAcknowledgedAt DateTime?
+  state              TargetState       @default(DISCOVERED)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  campaign OutreachCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  messages OutreachMessage[]
+  linkedin LinkedInStep?
+
+  @@index([campaignId, state])
+  @@index([emailHash])
+}
+
+model OutreachMessage {
+  id                String         @id @default(cuid())
+  targetId          String
+  channel           MessageChannel
+  step              Int // 1, 2, 3
+  subject           String?
+  body              String         @db.Text
+  templateKey       String? // e.g. "email.v1.cold" - insights group by this
+  approvedAt        DateTime?
+  approvedTextHash  String?
+  // sha256(messageId | approvedTextHash); unique so one approved text can never be sent twice (D-07).
+  sendKey           String?        @unique
+  attachmentSha256  String?
+  scheduledAt       DateTime?
+  claimedAt         DateTime?
+  attempts          Int            @default(0)
+  lastError         String?
+  sentAt            DateTime?
+  providerMessageId String?
+  threadId          String?
+  state             MessageState   @default(DRAFT)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  target  OutreachTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  replies Reply[]
+
+  @@unique([targetId, channel, step])
+  @@index([scheduledAt, state])
+}
+
+model LinkedInStep {
+  id          String        @id @default(cuid())
+  targetId    String        @unique
+  state       LinkedInState @default(NOT_STARTED)
+  requestedAt DateTime?
+  acceptedAt  DateTime?
+  markedBy    MarkedBy      @default(USER)
+  expiresAt   DateTime?
+  updatedAt   DateTime      @updatedAt
+
+  target OutreachTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+}
+
+model Reply {
+  id                String     @id @default(cuid())
+  messageId         String
+  providerMessageId String     @unique // makes polling idempotent
+  receivedAt        DateTime
+  snippet           String // up to 300 chars; full bodies are not stored (D-15)
+  classification    ReplyClass @default(OTHER)
+  ruleHit           String? // which deterministic rule decided it (bounce, unsubscribe, hostile, auto-reply)
+  suggestedResponse String?    @db.Text
+  createdAt         DateTime   @default(now())
+
+  message OutreachMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+}
+
+/// Global do-not-contact list. Deliberately NO relation to User: it survives account deletion.
+model SuppressionEntry {
+  id        String            @id @default(cuid())
+  emailHash String            @unique
+  reason    SuppressionReason
+  createdAt DateTime          @default(now())
+}
+
+/// Who did what, when. Deliberately NO relation to User (survives deletion); `detail` never holds plaintext emails.
+model AuditEvent {
+  id         String   @id @default(cuid())
+  userId     String?  @db.Uuid
+  action     String
+  entityType String
+  entityId   String?
+  detail     Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+}
+
+model CreditLedger {
+  id        String       @id @default(cuid())
+  userId    String       @db.Uuid
+  delta     Int
+  reason    CreditReason
+  refType   String
+  refId     String
+  createdAt DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Makes every spend / refund / grant idempotent: the same event can never post twice.
+  @@unique([userId, reason, refType, refId])
+  @@index([userId, createdAt])
+}
+
+model ProviderUsage {
+  id         String   @id @default(cuid())
+  userId     String   @db.Uuid
+  provider   String
+  operation  String
+  costMicros Int
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([provider, createdAt])
+}
+
+/// Admin-editable settings (pricing, caps, thresholds) layered over config defaults.
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
 }

@@ -45,7 +45,7 @@ export default async function CompanyPage({ params }: Props) {
   const [profile, jobs] = await Promise.all([
     db.companyProfile.findUnique({ where: { slug }, include: { reviews: { orderBy: { createdAt: "desc" } } } }),
     db.job.findMany({
-      where: { companySlug: slug, postedAt: { gte: daysAgo(30) } },
+      where: { ownerUserId: null, companySlug: slug, postedAt: { gte: daysAgo(30) } },
       orderBy: { postedAt: "desc" },
       take: 30,
       select: { ...jobCardSelect, matches: { where: { userId: user.id }, take: 1, select: { score: true, reason: true, aiScored: true, matchingSkills: true, missingSkills: true, experienceFit: true } } },

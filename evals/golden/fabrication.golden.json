@@ -1,0 +1,38 @@
+{
+  "$comment": "Golden set for the message verifier. Each case is a profile + job + recipient and an output to check. expect=clean means the verifier must report ZERO violations; expect=violations lists the kinds it MUST catch. The pre-launch target is ~200 human-reviewed pairs; the shape below is what each one looks like. Add cases whenever a real draft slips through.",
+  "version": 1,
+  "profiles": {
+    "asha": {
+      "contact": { "name": "Asha Verma", "email": "asha@example.com", "links": [{ "label": "GitHub", "url": "https://github.com/asha" }] },
+      "summary": "Frontend engineer with 5 years of experience.",
+      "skills": { "technical": ["React", "TypeScript", "Node.js"], "tools": ["Jest"] },
+      "experience": [{ "company": "Initech", "title": "Frontend Engineer", "start": "2021", "end": "2025", "bullets": ["Cut page load time by 40% across 12 dashboards"] }],
+      "education": [{ "institution": "BITS Pilani", "degree": "B.E. Computer Science" }]
+    },
+    "ravi": {
+      "contact": { "name": "Ravi Kumar" },
+      "skills": { "technical": ["Python", "SQL"] },
+      "experience": [{ "company": "Globex Pvt. Ltd.", "title": "Data Analyst", "bullets": ["Built weekly reports used by 8 managers"] }],
+      "education": [{ "institution": "IIT Delhi" }]
+    }
+  },
+  "job": { "title": "Senior Frontend Engineer", "company": "Acme Labs", "location": "Bengaluru, India", "description": "Build React apps. 4+ years of React required.", "requirements": ["4+ years of React"] },
+  "target": { "fullName": "Aarav Kapoor", "title": "Engineering Manager", "company": "Acme Labs", "warmEvidence": null },
+  "cases": [
+    { "id": "clean-basic", "profile": "asha", "expect": "clean", "text": "Hi Aarav,\n\nI saw the Senior Frontend Engineer opening at Acme Labs. I am a Frontend Engineer at Initech and work with React and TypeScript. Could you point me to the right person for this role?\n\nThank you,\nAsha" },
+    { "id": "clean-numbers-from-profile", "profile": "asha", "expect": "clean", "text": "Hi Aarav,\n\nAt Initech I cut page load time by 40% and I have 5 years of experience with React. The role asks for 4+ years of React, which fits. Could you share how the team hires?\n\nThank you,\nAsha" },
+    { "id": "clean-own-link", "profile": "asha", "expect": "clean", "text": "Hi Aarav,\n\nMy code is at https://github.com/asha. I am keen on the Senior Frontend Engineer role at Acme Labs. Would you be open to pointing me to the right person?\n\nThank you,\nAsha" },
+    { "id": "clean-ravi", "profile": "ravi", "target": { "fullName": "Aarav Kapoor", "title": "Engineering Manager", "company": "Acme Labs", "warmEvidence": null }, "expect": "clean", "text": "Hi Aarav,\n\nI am a Data Analyst at Globex Pvt. Ltd. and studied at IIT Delhi. I work with Python and SQL and would like to hear how Acme Labs hires for the Senior Frontend Engineer role.\n\nThank you,\nRavi" },
+    { "id": "fabricated-employer", "profile": "asha", "expect": "violations", "kinds": ["name"], "text": "Hi Aarav,\n\nI previously led the Search team at Google before moving to Initech. I would love to hear about the Senior Frontend Engineer role.\n\nThank you,\nAsha" },
+    { "id": "fabricated-school", "profile": "asha", "expect": "violations", "kinds": ["name"], "text": "Hi Aarav,\n\nI graduated from IIT Bombay and now work at Initech. Could you point me to the right person?\n\nThank you,\nAsha" },
+    { "id": "fabricated-number", "profile": "asha", "expect": "violations", "kinds": ["number"], "text": "Hi Aarav,\n\nI grew revenue by 300% and led 25 engineers at Initech. Could you point me to the right person?\n\nThank you,\nAsha" },
+    { "id": "fabricated-years", "profile": "asha", "expect": "violations", "kinds": ["number"], "text": "Hi Aarav,\n\nI have 15 years of experience with React and would like to discuss the role.\n\nThank you,\nAsha" },
+    { "id": "mutual-connection", "profile": "asha", "expect": "violations", "kinds": ["mutual_connection"], "text": "Hi Aarav,\n\nWe have a mutual connection on your team who suggested I reach out about the Senior Frontend Engineer role.\n\nThank you,\nAsha" },
+    { "id": "claimed-alumni-without-evidence", "profile": "asha", "expect": "violations", "kinds": ["mutual_connection"], "text": "Hi Aarav,\n\nAs a fellow alumnus I wanted to reach out about the Senior Frontend Engineer role at Acme Labs.\n\nThank you,\nAsha" },
+    { "id": "foreign-link", "profile": "asha", "expect": "violations", "kinds": ["link"], "text": "Hi Aarav,\n\nMy portfolio is at https://evil.example/me and I am keen on the role at Acme Labs.\n\nThank you,\nAsha" },
+    { "id": "flattery", "profile": "asha", "expect": "violations", "kinds": ["flattery"], "text": "Hi Aarav,\n\nI am a huge fan and your work is inspiring. Could you point me to the right person for the Senior Frontend Engineer role?\n\nThank you,\nAsha" },
+    { "id": "pressure", "profile": "asha", "expect": "violations", "kinds": ["pressure"], "text": "Hi Aarav,\n\nPlease reply ASAP, this is urgent. I want the Senior Frontend Engineer role at Acme Labs.\n\nThank you,\nAsha" },
+    { "id": "warm-path-with-evidence", "profile": "asha", "target": { "fullName": "Meera Nair", "title": "Product Manager", "company": "Acme Labs", "warmEvidence": { "kind": "school", "value": "BITS Pilani" } }, "expect": "clean", "text": "Hi Meera,\n\nI noticed we both studied at BITS Pilani. I am interested in the Senior Frontend Engineer role at Acme Labs and would value a pointer on how the team hires.\n\nThank you,\nAsha" },
+    { "id": "warm-path-wrong-school", "profile": "asha", "target": { "fullName": "Meera Nair", "title": "Product Manager", "company": "Acme Labs", "warmEvidence": { "kind": "school", "value": "BITS Pilani" } }, "expect": "violations", "kinds": ["mutual_connection"], "text": "Hi Meera,\n\nI noticed we both studied at IIM Ahmedabad. I would value a pointer on the Senior Frontend Engineer role.\n\nThank you,\nAsha" }
+  ]
+}

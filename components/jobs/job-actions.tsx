@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, BookmarkCheck, ExternalLink, FileText } from "lucide-react";
+import { Bookmark, BookmarkCheck, ExternalLink, FileText, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -77,6 +77,14 @@ export function JobActions({
           <Link href="/onboarding">Upload a resume to tailor</Link>
         </Button>
       )}
+
+      {hasResume ? (
+        <Button asChild variant="secondary" size="lg">
+          <Link href={`/outreach/new?jobId=${jobId}`}>
+            <Send /> Reach out
+          </Link>
+        </Button>
+      ) : null}
 
       <Button variant="ghost" onClick={() => setStatus("SAVED")} loading={busy} disabled={Boolean(current)}>
         {current ? <BookmarkCheck /> : <Bookmark />} {current ? "In your tracker" : "Save for later"}

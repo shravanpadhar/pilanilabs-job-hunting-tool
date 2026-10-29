@@ -3,50 +3,57 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
-  Pilanilabs brand tokens (from the brand kit):
-  primary / accent #B9832C · secondary / text #021C3D · background #F6F5F1 · link #CED9E5
-  headings: Playfair Display · body: Inter · buttons radius 6px · inputs radius 12px
+  PilaniLabs design tokens (supplied design spec, D-12)
+  brand #89A9C3 · secondary/navy #0B2236 · accent & links #566574 · background #F6F5F1 · text #0F2233
+  primary action (buttons) #0E8A7D · inputs: navy #102B43 with white text, border #28435C
+  headings: Fraunces · body: Inter · radius 8px · base spacing unit 12px
+  Legacy names are kept as aliases so existing components pick up the new look without edits:
+  --gold-ink = accent text colour, --link = soft brand tint used for chips.
 */
 :root {
   --background: #f6f5f1;
-  --foreground: #021c3d;
+  --foreground: #0f2233;
   --card: #ffffff;
-  --card-foreground: #021c3d;
-  --primary: #b9832c;
+  --card-foreground: #0f2233;
+  --primary: #0e8a7d; /* primary button background */
   --primary-foreground: #ffffff;
-  --secondary: #021c3d;
+  --brand: #89a9c3;
+  --secondary: #0b2236;
   --secondary-foreground: #f6f5f1;
   --muted: #eceae3;
-  --muted-foreground: #4a5b73;
-  --accent: #b9832c;
-  --gold-ink: #8a5f16; /* darker gold for gold *text* — keeps 4.5:1 contrast on cream */
-  --link: #ced9e5;
+  --muted-foreground: #566574;
+  --accent: #566574;
+  --gold-ink: #566574; /* legacy name: accent / text-link colour (5.9:1 on the cream background) */
+  --link: #dbe6f0; /* soft tint of the brand blue, used for chips and selection */
   --border: #dad6ca;
-  --input: #ffffff;
-  --input-border: #b8c2d0;
-  --ring: #b9832c;
+  --input: #102b43;
+  --input-foreground: #ffffff;
+  --input-border: #28435c;
+  --ring: #0e8a7d;
   --success: #1f7a4d;
   --warning: #9a5b00;
   --danger: #b3261e;
-  --radius-button: 6px;
-  --radius-input: 12px;
-  --radius-card: 6px;
+  --radius-button: 8px;
+  --radius-input: 8px;
+  --radius-card: 8px;
+  --shadow-secondary-button: 0 8px 22px 0 rgba(0, 0, 0, 0.4);
 }
 
 .dark {
-  --background: #061326;
+  --background: #08141f;
   --foreground: #eaeff5;
-  --card: #0f1932;
+  --card: #0e2236;
   --card-foreground: #eaeff5;
-  --secondary: #ced9e5;
-  --secondary-foreground: #021c3d;
-  --muted: #12203d;
+  --brand: #89a9c3;
+  --secondary: #89a9c3;
+  --secondary-foreground: #0b2236;
+  --muted: #102b43;
   --muted-foreground: #a9b7cc;
-  --gold-ink: #dcab57;
-  --link: #3a4a6b;
-  --border: #26324d;
-  --input: #0f1932;
-  --input-border: #26324d;
+  --gold-ink: #9db8cf;
+  --link: #28435c;
+  --border: #28435c;
+  --input: #102b43;
+  --input-border: #28435c;
   --success: #4cc38a;
   --warning: #e0a13a;
   --danger: #ff8a80;
@@ -59,6 +66,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-brand: var(--brand);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -68,6 +76,7 @@
   --color-link: var(--link);
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-input-foreground: var(--input-foreground, #ffffff);
   --color-input-border: var(--input-border);
   --color-ring: var(--ring);
   --color-success: var(--success);
@@ -77,7 +86,7 @@
   --radius-input: var(--radius-input);
   --radius-card: var(--radius-card);
   --font-sans: var(--font-inter), system-ui, sans-serif;
-  --font-heading: var(--font-playfair), Georgia, serif;
+  --font-heading: var(--font-fraunces), Georgia, serif;
 }
 
 @layer base {

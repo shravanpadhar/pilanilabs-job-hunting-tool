@@ -1,10 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { AI_TIMEOUT_MS, modelFor, type AiFeature } from "@/config/ai";
+import { estimateAiCostMicros } from "@/config/ai-pricing";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { log } from "@/lib/logger";
+import { fakeChat } from "@/lib/ai/fake";
 import { openrouterChat, type ChatMessage, type ChatResult } from "@/lib/ai/openrouter";
 
 let cached: Anthropic | null = null;
@@ -40,7 +42,7 @@ export function schemaPrompt(schema: z.ZodType): string {
 async function logUsage(userId: string | null | undefined, feature: AiFeature, model: string, r: ChatResult) {
   try {
     await db.aiUsage.create({
-      data: { userId: userId ?? null, feature, model: model.split(",")[0], inputTokens: r.inputTokens, outputTokens: r.outputTokens, cacheReadTokens: r.cacheReadTokens },
+      data: { userId: userId ?? null, feature, model: model.split(",")[0], inputTokens: r.inputTokens, outputTokens: r.outputTokens, cacheReadTokens: r.cacheReadTokens, costMicros: estimateAiCostMicros(model.split(",")[0], r.inputTokens, r.outputTokens) },
     });
   } catch (err) {
     log.warn("ai_usage_log_failed", { feature, message: (err as Error).message });
@@ -69,6 +71,7 @@ function friendlyApiError(err: unknown): AppError {
 
 /** One model call through the configured provider, normalised to a common result. */
 async function chat(opts: { model: string; system: string; messages: ChatMessage[]; maxTokens: number; effort: "low" | "medium" | "high"; feature: AiFeature }): Promise<ChatResult> {
+  if (env.aiProvider === "fake") return fakeChat({ feature: opts.feature, system: opts.system, user: opts.messages.filter((m) => m.role === "user")[0]?.content ?? "" });
   if (env.aiProvider === "openrouter") return openrouterChat(opts);
 
   let response: Anthropic.Message;

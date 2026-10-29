@@ -73,3 +73,26 @@ tests/          unit/ (Vitest), e2e/ (Playwright)
 5. Test it with `npm run fetch-jobs -- --only=acme`. Failures are logged as `source_failed` and never affect other sources.
 
 To track another company's ATS board, add it to `config/companies.ts` (or paste its career-page URL on the Hidden jobs page).
+
+## Outreach engine (Career Platform)
+
+```
+paste link / feed job ─► intake (ATS APIs · JSON-LD · SSRF-guarded fetch + grounded AI extraction; LinkedIn/Indeed never fetched)
+        ─► company resolution (30-day rule) ─► targets: licensed provider ─► rules rank ─► verify email ─► confidence gate
+        ─► drafts (model, then message verifier, one corrective retry, else deterministic template)
+        ─► approval record: approvedTextHash(recipient + subject + body + footer + attachment) + unique sendKey
+        ─► activate: charge credits, schedule day 0/3/7 in recipient working hours
+        ─► Inngest tick ─► send worker: hash check ─► atomic claim ─► send-time policy ─► Gmail ─► ledger
+        ─► reply poller (threads we started) ─► RULES first (bounce / auto-reply / complaint / unsubscribe) ─► model only if no rule
+        ─► stop sequence · suppress · notify · suggested reply (shown, never sent) ─► inbox · tracker · insights
+```
+
+**Modules.** `lib/outreach/*` (intake, targets, draft, verify-message, approval, schedule, policy, send, replies, linkedin, health, insights), `lib/providers/*` (queue, mailbox, contacts, verify, joblookup, notify: each an interface plus a fake), `lib/compliance/*` (suppression, opt-out, regions), `lib/crypto/envelope.ts`, `lib/billing/*`, `lib/admin/*`, `config/outreach.ts` and `config/regions.ts` hold the tunables.
+
+**Never twice.** `OutreachMessage` is unique on `(targetId, channel, step)` and `sendKey` is unique; the sender claims a message with one conditional `UPDATE` (SCHEDULED → SENDING), re-checks the approval hash, and after any uncertain failure asks the mailbox whether the mail left before retrying. A claim abandoned by a dead worker is resolved the same way.
+
+**Stop by rule.** `lib/outreach/reply-rules.ts` decides bounces, auto-replies, complaints, unsubscribes and hostility before any model runs; the model can only choose among benign classes. A reply of any kind cancels every unsent message to that person, including the LinkedIn lane.
+
+**Data and RLS.** Migrations `0003_outreach_core` and `0004_outreach_rls`. Outreach tables are read-only to signed-in users; mailbox tokens, suppression list, audit log, provider usage and settings are server-only. `SuppressionEntry` and `AuditEvent` have no relation to `User`, so they outlive account deletion (hashed addresses and opaque ids only).
+
+**Add a provider.** Implement the interface in `lib/providers/<area>/types.ts`, return it from that folder's `index.ts` factory (selected by env), and add a contract test next to the fake.

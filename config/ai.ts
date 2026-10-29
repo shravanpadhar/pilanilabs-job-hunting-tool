@@ -25,7 +25,12 @@ export type AiFeature =
   | "score_matches"
   | "tailor_resume"
   | "cover_letter"
-  | "referral";
+  | "referral"
+  | "extract_job"
+  | "rank_targets"
+  | "draft_outreach"
+  | "classify_reply"
+  | "suggest_reply";
 
 export const AI_FEATURE_MODEL: Record<AiFeature, string> = {
   parse_resume: AI_MODELS.quality,
@@ -33,12 +38,18 @@ export const AI_FEATURE_MODEL: Record<AiFeature, string> = {
   tailor_resume: AI_MODELS.quality,
   cover_letter: AI_MODELS.quality,
   referral: AI_MODELS.quality,
+  extract_job: AI_MODELS.fast,
+  rank_targets: AI_MODELS.fast,
+  draft_outreach: AI_MODELS.quality,
+  classify_reply: AI_MODELS.fast,
+  suggest_reply: AI_MODELS.quality,
 };
 
-const FAST_FEATURES: AiFeature[] = ["score_matches"];
+const FAST_FEATURES: AiFeature[] = ["score_matches", "extract_job", "rank_targets", "classify_reply"];
 
 /** Model id for a feature under the given provider. */
-export function modelFor(feature: AiFeature, provider: "anthropic" | "openrouter"): string {
+export function modelFor(feature: AiFeature, provider: "anthropic" | "openrouter" | "fake"): string {
+  if (provider === "fake") return "fake-model";
   if (provider === "openrouter") {
     return FAST_FEATURES.includes(feature)
       ? (process.env.OPENROUTER_MODEL_FAST?.trim() || OPENROUTER_DEFAULTS.fast)
@@ -54,6 +65,11 @@ export const AI_DAILY_LIMITS: Record<AiFeature, number> = {
   tailor_resume: 20,
   cover_letter: 20,
   referral: 30,
+  extract_job: 40,
+  rank_targets: 40,
+  draft_outreach: 40,
+  classify_reply: 200,
+  suggest_reply: 100,
 };
 
 export const AI_TIMEOUT_MS = 120_000;
